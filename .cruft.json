@@ -1,0 +1,34 @@
+{
+  "template": "https://github.com/JoseRZapata/data-science-project-template",
+  "commit": "10349e6d9a1800e832d9e86cc17314c7c4148a0a",
+  "checkout": null,
+  "context": {
+    "cookiecutter": {
+      "project_name": "ml-message-classifier",
+      "repo_name": "ml-message-classifier",
+      "github_username": "juan-gomezj4",
+      "author_name": "Juan G",
+      "author_email": "jgomezja@unal.edu.co",
+      "description": "A ML project to classify user messages using NLP. Based on the Yelp Open Dataset, it processes and labels reviews to support automatic message handling. Includes data pipelines, model training, and batch inference pipeline.",
+      "compatible_python_versions": "3.11",
+      "mkdocs": true,
+      "codecov": true,
+      "license": "Not open source",
+      "_copy_without_render": [
+        ".code_quality/*",
+        ".vscode/*",
+        "config/*",
+        "data/*",
+        "src/*",
+        "tests/*",
+        ".editorconfig",
+        ".pre-commit-config.yaml",
+        "codecov.yaml",
+        "docs/*"
+      ],
+      "_template": "https://github.com/JoseRZapata/data-science-project-template",
+      "_commit": "10349e6d9a1800e832d9e86cc17314c7c4148a0a"
+    }
+  },
+  "directory": null
+}

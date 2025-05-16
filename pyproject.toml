@@ -9,7 +9,8 @@ requires-python = ">=3.11"
 readme = "README.md"
 
 dependencies = [
-
+    "pandas>=2.2.3",
+    "pyarrow>=20.0.0",
 ]
 
 [project.urls]
@@ -23,7 +24,9 @@ dev = [
     "pytest>=8.3.5", # Testing framework
     "pytest-cookies>=0.7.0",
     "pytest-cov>=6.1.1",
-    "cruft[pyproject]>=2.15.0",# Automated Cookiecutter template synchronization
+    "cruft[pyproject]>=2.15.0", # Automated Cookiecutter template synchronization
+    "ipykernel>=6.29.5",
+    "jupyterlab>=4.4.2",
 ]
 
 #

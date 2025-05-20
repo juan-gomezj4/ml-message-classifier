@@ -32,4 +32,4 @@ cols_numeric_int: [useful, funny, cool, review_count, useful_user, funny_user, c
 cols_boolean: [is_open]
 cols_string: [review_id, text, address, categories]
 col_date: date
-output_path: data/03_primary/review_user_business_primary.parquet
+output_path: data/02_intermediate/review_user_business_validate.parquet

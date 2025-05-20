@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 import pandas as pd
 from loguru import logger
@@ -22,7 +22,7 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         cols_boolean: list[str],
         cols_string: list[str],
         col_date: str,
-        output_path: Optional[Union[str, Path]] = None,
+        output_path: str | Path | None = None,
     ) -> None:
         """
         Initialize ValidateYelpData.
@@ -86,7 +86,7 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         return df
 
     # Verify data types
-    def _verify_types(self, X: pd.DataFrame) -> Dict[str, bool]:
+    def _verify_types(self, X: pd.DataFrame) -> dict[str, bool]:
         """
         Verify that columns have the expected types after conversion.
 
@@ -106,8 +106,7 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
             "bool": (self.cols_boolean, pd.api.types.is_bool_dtype),
             "string": (
                 self.cols_string,
-                lambda col: pd.api.types.is_string_dtype(col)
-                or pd.api.types.is_object_dtype(col),
+                lambda col: pd.api.types.is_string_dtype(col) or pd.api.types.is_object_dtype(col),
             ),
         }
 
@@ -117,8 +116,8 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
 
         # Check datetime column separately
         if self.col_date in X.columns:
-            type_checks[f"{self.col_date}_is_datetime"] = (
-                pd.api.types.is_datetime64_dtype(X[self.col_date])
+            type_checks[f"{self.col_date}_is_datetime"] = pd.api.types.is_datetime64_dtype(
+                X[self.col_date]
             )
 
         return type_checks
@@ -171,7 +170,7 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         logger.info("Data validation completed successfully")
         return X
 
-    def set_output(self, *, transform: Optional[Any] = None) -> "ValidateYelpData":
+    def set_output(self, *, transform: Any | None = None) -> "ValidateYelpData":
         """
         Method for compatibility with scikit-learn's set_output API.
         Args:

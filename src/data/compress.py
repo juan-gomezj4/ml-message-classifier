@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import Any
 
 import pandas as pd
 from loguru import logger
@@ -10,7 +10,7 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
     Drop columns from a DataFrame.
     """
 
-    def __init__(self, columns: List[str]) -> None:
+    def __init__(self, columns: list[str]) -> None:
         """
         Args:
             columns: List of column names to drop.
@@ -50,11 +50,11 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
 
     def __init__(
         self,
-        categorical: List[str],
-        numerical: List[str],
-        string: List[str],
-        data: List[str],
-        output_path: Optional[str] = None,
+        categorical: list[str],
+        numerical: list[str],
+        string: list[str],
+        data: list[str],
+        output_path: str | None = None,
     ) -> None:
         """
         Initialize the CompressYelpData transformer.
@@ -72,7 +72,7 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
         self.output_path = output_path
 
         # Create transformers for each group of columns to drop
-        self.group_droppers: List[DropColumnsTransformer] = [
+        self.group_droppers: list[DropColumnsTransformer] = [
             DropColumnsTransformer(columns=self.categorical),
             DropColumnsTransformer(columns=self.numerical),
             DropColumnsTransformer(columns=self.string),
@@ -126,7 +126,7 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
 
         return X_compressed
 
-    def set_output(self, *, transform: Optional[Any] = None) -> "CompressYelpData":
+    def set_output(self, *, transform: Any | None = None) -> "CompressYelpData":
         """
         Method for compatibility with scikit-learn's set_output API.
 

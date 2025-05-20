@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from src.data.aggregate import AggregateYelpData
 from src.data.compress import CompressYelpData
 from src.data.extract import ExtractYelpData
+from src.data.mit import MITYelpData
 from src.data.validate import ValidateYelpData
 
 BASE_DIR = Path(__file__).resolve().parents[3]
@@ -15,6 +16,7 @@ extract_config = OmegaConf.load(BASE_DIR / "conf/data_feature/extract.yml")
 validate_config = OmegaConf.load(BASE_DIR / "conf/data_feature/validate.yml")
 aggregate_config = OmegaConf.load(BASE_DIR / "conf/data_feature/aggregate.yml")
 compress_config = OmegaConf.load(BASE_DIR / "conf/data_feature/compress.yml")
+mit_config = OmegaConf.load(BASE_DIR / "conf/data_feature/mit.yml")
 
 # Build pipeline
 feature_pipeline = Pipeline(
@@ -62,7 +64,7 @@ feature_pipeline = Pipeline(
                 text=aggregate_config.string.text,
                 text_length=aggregate_config.string.text_length,
                 categories=aggregate_config.string.categories,
-                date=aggregate_config.date.date_column,
+                date=aggregate_config.date.date,
                 output_path=BASE_DIR / aggregate_config.output_path,
             ),
         ),
@@ -74,6 +76,17 @@ feature_pipeline = Pipeline(
                 string=compress_config.string,
                 data=compress_config.data,
                 output_path=BASE_DIR / compress_config.output_path,
+            ),
+        ),
+        (
+            "mit",
+            MITYelpData(
+                text_column=mit_config.text_column,
+                group_col=mit_config.group_col,
+                value_col=mit_config.value_col,
+                embedding_model=mit_config.embedding_model,
+                n_components=mit_config.n_components,
+                output_path=BASE_DIR / mit_config.output_path,
             ),
         ),
     ]

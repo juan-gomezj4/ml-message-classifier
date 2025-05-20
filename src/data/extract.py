@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 from loguru import logger
@@ -93,9 +93,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         return pd.concat(
             [
                 chunk[chunk[self.field_review] > 0]
-                for chunk in pd.read_json(
-                    self.user_path, lines=True, chunksize=self.chunksize
-                )
+                for chunk in pd.read_json(self.user_path, lines=True, chunksize=self.chunksize)
             ],
             ignore_index=True,
         )
@@ -112,9 +110,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         return pd.concat(
             [
                 chunk[(chunk[self.text].str.strip() != "") & (chunk[self.useful] > 0)]
-                for chunk in pd.read_json(
-                    self.review_path, lines=True, chunksize=self.chunksize
-                )
+                for chunk in pd.read_json(self.review_path, lines=True, chunksize=self.chunksize)
             ],
             ignore_index=True,
         )
@@ -149,12 +145,8 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
             pd.DataFrame: Merged DataFrame.
         """
         logger.info("Merging review, user, and business data")
-        df_review = df_review.sort_values(self.date, ascending=False).head(
-            self.sample_size
-        )
-        df_merged = df_review.merge(
-            df_user, on=self.user_id, how="left", suffixes=("", "_user")
-        )
+        df_review = df_review.sort_values(self.date, ascending=False).head(self.sample_size)
+        df_merged = df_review.merge(df_user, on=self.user_id, how="left", suffixes=("", "_user"))
         df_merged = df_merged.merge(
             df_business, on=self.business_id, how="left", suffixes=("", "_business")
         )
@@ -186,7 +178,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         self._save_if_needed(df_final)
         return df_final
 
-    def set_output(self, *, transform: Optional[Any] = None) -> "ExtractYelpData":
+    def set_output(self, *, transform: Any | None = None) -> "ExtractYelpData":
         """
         Method for compatibility with scikit-learn's set_output API.
 

@@ -15,7 +15,8 @@ string:
   text: text
   categories: categories
 
-data:
+date:
   date: date
 
 output_path: data/03_primary/review_user_business_aggregate.parquet
+

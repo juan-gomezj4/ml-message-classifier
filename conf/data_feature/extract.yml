@@ -4,7 +4,7 @@ paths:
   user: data/01_raw/yelp_academic_dataset_user.json
   review: data/01_raw/yelp_academic_dataset_review.json
   business: data/01_raw/yelp_academic_dataset_business.json
-  output: data/02_intermediate/review_user_business.parquet
+  output: data/01_raw/review_user_business_extract.parquet
 
 params:
   chunksize: 100000

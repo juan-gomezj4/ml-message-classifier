@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -69,9 +69,9 @@ class FrequencyEncodeAggregateTransformer(BaseEstimator, TransformerMixin):
     Replace categorical values with their frequency in the training data.
     """
 
-    def __init__(self, frequency_encode: List[str]) -> None:
+    def __init__(self, frequency_encode: list[str]) -> None:
         self.frequency_encode = frequency_encode
-        self.freq_maps: Dict[str, pd.Series] = {}
+        self.freq_maps: dict[str, pd.Series] = {}
 
     def fit(self, X: pd.DataFrame) -> "FrequencyEncodeAggregateTransformer":
         """
@@ -110,7 +110,7 @@ class BinaryFlagAggregateTransformer(BaseEstimator, TransformerMixin):
     Create binary flags for numeric columns where value > 0.
     """
 
-    def __init__(self, binary_flag: List[str]) -> None:
+    def __init__(self, binary_flag: list[str]) -> None:
         self.binary_flag = binary_flag
 
     def fit(self, X: pd.DataFrame) -> "BinaryFlagAggregateTransformer":
@@ -148,7 +148,7 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
     Bin numeric columns into quartile levels using qcut.
     """
 
-    def __init__(self, qcut_level: List[str], labels: List[int] = [0, 1, 2, 3]) -> None:
+    def __init__(self, qcut_level: list[str], labels: list[int] = [0, 1, 2, 3]) -> None:
         self.qcut_level = qcut_level
         self.labels = labels
 
@@ -179,9 +179,9 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
         for col in self.qcut_level:
             # Step 2: Create new column with quartile level
-            X[f"{col}_level"] = pd.qcut(
-                X[col], q=4, labels=self.labels, duplicates="drop"
-            ).astype("int32")
+            X[f"{col}_level"] = pd.qcut(X[col], q=4, labels=self.labels, duplicates="drop").astype(
+                "int32"
+            )
         return X
 
 
@@ -224,9 +224,7 @@ class FansLevelAggregateTransformer(BaseEstimator, TransformerMixin):
         # Step 2: Define logic using np.select for speed
         conditions = [X[self.fans] == 0, X[self.fans] <= self.p90]
         choices = [0, 1]
-        X[f"{self.fans}_level"] = np.select(conditions, choices, default=2).astype(
-            "int32"
-        )
+        X[f"{self.fans}_level"] = np.select(conditions, choices, default=2).astype("int32")
         return X
 
 
@@ -350,7 +348,7 @@ class CategoryGroupAggregateTransformer(BaseEstimator, TransformerMixin):
 
     def __init__(self, categories: str) -> None:
         self.categories = categories
-        self.patterns: Dict[str, str] = {
+        self.patterns: dict[str, str] = {
             "restaurant": r"\brestaurant|pizza|food|diner\b",
             "bar": r"\bbar|pub|nightlife|cocktail\b",
             "health": r"\bhealth|spa|doctor|clinic|fitness|dentist\b",
@@ -394,9 +392,7 @@ class CategoryGroupAggregateTransformer(BaseEstimator, TransformerMixin):
             return "other"
 
         # Step 3: Apply categorization function to each row
-        X["main_category_group"] = (
-            X[self.categories].apply(categorize).astype("category")
-        )
+        X["main_category_group"] = X[self.categories].apply(categorize).astype("category")
         return X
 
 
@@ -433,9 +429,7 @@ class CategoryCountAggregateTransformer(BaseEstimator, TransformerMixin):
         # Step 1: copy the DataFrame to avoid modifying the original
         X = X.copy()
         # Step 2: Count number of elements in the category list
-        X["category_count"] = (
-            X[self.categories].fillna("").str.split(",").str.len().astype("int32")
-        )
+        X["category_count"] = X[self.categories].fillna("").str.split(",").str.len().astype("int32")
         return X
 
 
@@ -505,15 +499,15 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
         self,
         elite: str,
         elite_count: int,
-        frequency_encode: List[str],
-        binary_flag: List[str],
-        qcut_level: List[str],
+        frequency_encode: list[str],
+        binary_flag: list[str],
+        qcut_level: list[str],
         fans: str,
         text: str,
         text_length: str,
         categories: str,
         date: str,
-        output_path: Optional[Union[str, Path]] = None,
+        output_path: str | Path | None = None,
     ) -> None:
         """
         Initialize AggregateYelpData with feature engineering parameters.
@@ -543,15 +537,13 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
         self.output_path = Path(output_path) if output_path else None
 
         # Define the list of transformers
-        self.transformers: List[BaseEstimator] = [
+        self.transformers: list[BaseEstimator] = [
             EliteAggregateTransformer(elite=self.elite, elite_count=self.elite_count),
             FrequencyEncodeAggregateTransformer(frequency_encode=self.frequency_encode),
             BinaryFlagAggregateTransformer(binary_flag=self.binary_flag),
             QCutLevelAggregateTransformer(qcut_level=self.qcut_level),
             FansLevelAggregateTransformer(fans=self.fans),
-            TextLengthAggregateTransformer(
-                text=self.text, text_length=self.text_length
-            ),
+            TextLengthAggregateTransformer(text=self.text, text_length=self.text_length),
             WordCountAggregateTransformer(text=self.text),
             ExclamationFlagAggregateTransformer(text=self.text),
             CategoryGroupAggregateTransformer(categories=self.categories),
@@ -612,7 +604,7 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
         logger.info("Data transformation complete")
         return X_transformed
 
-    def set_output(self, *, transform: Optional[Any] = None) -> "AggregateYelpData":
+    def set_output(self, *, transform: Any | None = None) -> "AggregateYelpData":
         """
         Method for compatibility with scikit-learn's set_output API.
 

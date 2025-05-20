@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 import pandas as pd
 from loguru import logger
@@ -14,16 +14,16 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
 
     def __init__(
         self,
-        user_path: Union[str, Path],
-        review_path: Union[str, Path],
-        business_path: Union[str, Path],
+        user_path: str | Path,
+        review_path: str | Path,
+        business_path: str | Path,
         field_review: str,
         text: str,
         useful: str,
         date: str,
         user_id: str,
         business_id: str,
-        output_path: Optional[Union[str, Path]] = None,
+        output_path: str | Path | None = None,
         chunksize: int = int(1e5),
         sample_size: int = int(1e6),
     ) -> None:
@@ -47,7 +47,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         self.user_path: Path = Path(user_path)
         self.review_path: Path = Path(review_path)
         self.business_path: Path = Path(business_path)
-        self.output_path: Optional[Path] = Path(output_path) if output_path else None
+        self.output_path: Path | None = Path(output_path) if output_path else None
         self.chunksize: int = chunksize
         self.sample_size: int = sample_size
         self.field_review: str = field_review
@@ -57,21 +57,31 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         self.user_id: str = user_id
         self.business_id: str = business_id
 
-    def fit(
-        self, X: Optional[Any] = None, y: Optional[Any] = None
-    ) -> "ExtractYelpData":
+    def fit(self, X: Any | None = None) -> "ExtractYelpData":
         """
         Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
             X: Ignored.
-            y: Ignored.
 
         Returns:
             ExtractYelpData: self
         """
         return self
 
+    # Save data to parquet if output path is specified
+    def _save_if_needed(self, df: pd.DataFrame) -> None:
+        """
+        Save the DataFrame to parquet if output_path is set.
+
+        Args:
+            df (pd.DataFrame): DataFrame to save.
+        """
+        if self.output_path:
+            logger.info(f"Saving merged data to {self.output_path}")
+            df.to_parquet(self.output_path, index=False)
+
+    # Load user data
     def _load_user(self) -> pd.DataFrame:
         """
         Load user data, filtering users with at least one review.
@@ -90,6 +100,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
             ignore_index=True,
         )
 
+    # Load review data
     def _load_review(self) -> pd.DataFrame:
         """
         Load review data, filtering out empty reviews and those with zero usefulness.
@@ -108,6 +119,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
             ignore_index=True,
         )
 
+    # Load business data
     def _load_business(self) -> pd.DataFrame:
         """
         Load business data.
@@ -118,6 +130,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         logger.info(f"Loading business data from {self.business_path}")
         return pd.read_json(self.business_path, lines=True)
 
+    # Merge all data (user, review, business)
     def _merge_all(
         self,
         df_review: pd.DataFrame,
@@ -147,18 +160,7 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         )
         return df_merged
 
-    def _save_if_needed(self, df: pd.DataFrame) -> None:
-        """
-        Save the DataFrame to parquet if output_path is set.
-
-        Args:
-            df (pd.DataFrame): DataFrame to save.
-        """
-        if self.output_path:
-            logger.info(f"Saving merged data to {self.output_path}")
-            df.to_parquet(self.output_path, index=False)
-
-    def transform(self, X: Optional[Any] = None) -> pd.DataFrame:
+    def transform(self, X: Any | None = None) -> pd.DataFrame:
         """
         Extract, merge, and optionally save Yelp data.
 
@@ -168,20 +170,28 @@ class ExtractYelpData(BaseEstimator, TransformerMixin):
         Returns:
             pd.DataFrame: Final merged DataFrame.
         """
+        # 1. Load data
         df_user = self._load_user()
+
+        # 2. Load review data
         df_review = self._load_review()
+
+        # 3. Load business data
         df_business = self._load_business()
+
+        # 4. Merge all data
         df_final = self._merge_all(df_review, df_user, df_business)
+
+        # 5. Save if needed
         self._save_if_needed(df_final)
         return df_final
 
     def set_output(self, *, transform: Optional[Any] = None) -> "ExtractYelpData":
         """
         Method for compatibility with scikit-learn's set_output API.
-        Does nothing and returns self.
 
         Args:
-            transform (Optional[Any], optional): Output transform option. Ignored.
+            transform (Optional[Any]): Ignored.
 
         Returns:
             ExtractYelpData: self

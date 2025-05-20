@@ -35,8 +35,8 @@ indent-width = 4
 # Assume Python 3.10
 target-version = "py310"
 
-# Include ipython notebooks
-extend-include = ["*.ipynb"]
+# # Include ipython notebooks
+# extend-include = ["*.ipynb"]
 
 [lint]
 select = [

@@ -1,0 +1,8 @@
+### Data extraction configuration
+
+text_column: text
+group_col: main_category_group
+value_col: text_length
+embedding_model: sentence-transformers/paraphrase-albert-small-v2
+n_components: 50
+output_path: data/04_feature/review_user_business_mit.parquet

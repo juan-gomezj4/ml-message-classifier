@@ -156,6 +156,13 @@ out/
 .idea_modules/
 
 # ===========================
+# github
+# ===========================
+.github/ISSUE_TEMPLATE/
+.github/pull_request_template.md
+.github/labels.yml
+
+# ===========================
 # Editors / IDEs
 # ===========================
 *~

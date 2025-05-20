@@ -1,0 +1,19 @@
+### Data extraction configuration
+
+paths:
+  user: data/01_raw/yelp_academic_dataset_user.json
+  review: data/01_raw/yelp_academic_dataset_review.json
+  business: data/01_raw/yelp_academic_dataset_business.json
+  output: data/02_intermediate/review_user_business.parquet
+
+params:
+  chunksize: 100000
+  sample_size: 1000100
+
+fields:
+  review_count: review_count
+  text: text
+  useful: useful
+  date: date
+  user_id: user_id
+  business_id: business_id

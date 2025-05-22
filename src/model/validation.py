@@ -1,55 +1,58 @@
 from typing import Any
 
-import joblib
 import pandas as pd
-from loguru import logger
 from sklearn.metrics import classification_report
 
 
-def evaluate_and_save_model(
+METRIC_MAP = {
+    "f1_macro": "f1-score",
+    "recall_macro": "recall",
+}
+
+
+def evaluate_model(
     model: Any,
     X_test: pd.DataFrame,
     y_test: pd.Series,
     thresholds: dict[str, float],
-    output_path: str,
-) -> None:
+) -> dict[str, float]:
     """
-    Evaluate a trained model against threshold metrics and save it if passed.
+    Evaluate a classification model and verify that performance meets specified thresholds.
 
     Args:
-        model (Any): Trained model with `.predict` method.
-        X_test (pd.DataFrame): Features for validation.
-        y_test (pd.Series): Ground truth labels.
-        thresholds (Dict[str, float]): Minimum thresholds for metrics like 'f1_macro'.
-        output_path (str): Path to save the model if thresholds are met.
+        model: Trained model with `.predict()` method.
+        X_test: Features for validation.
+        y_test: Ground truth labels.
+        thresholds: Dict of metric thresholds, e.g., {'f1_macro': 0.75}.
+
+    Returns:
+        Dictionary with computed metric values.
 
     Raises:
-        ValueError: If any metric is below its threshold.
+        ValueError: If a metric is missing or below its threshold.
     """
-    logger.info("Validator model started")
-
-    logger.info("Evaluating model...")
     y_pred = model.predict(X_test)
-
-    logger.info("Reporting metrics...")
     report = classification_report(y_test, y_pred, output_dict=True)
-
     macro_avg = report.get("macro avg", {})
-    for metric, threshold in thresholds.items():
-        metric_name = metric.replace("_macro", "")
-        score = macro_avg.get(metric_name)
 
-        logger.info(f"Evaluating {metric} with threshold {threshold}...")
-        if score is None:
-            ERROR_MSG = f"Metric {metric} not found in report."
-            raise ValueError(ERROR_MSG)
-        if score < threshold:
-            FAIL_MSG = "[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
+    results: dict[str, float] = {}
+
+    for metric, threshold in thresholds.items():
+        key_in_macro = METRIC_MAP.get(metric)
+        if key_in_macro is None:
             raise ValueError(
-                FAIL_MSG.format(metric=metric, score=score, threshold=threshold)
+                f"Unsupported metric '{metric}'. Please update METRIC_MAP if needed."
             )
 
-        logger.info(f"[PASS] {metric} = {score:.4f} ≥ threshold = {threshold:.4f}")
+        score = macro_avg.get(key_in_macro)
+        if score is None:
+            raise ValueError(f"Metric '{metric}' not found in evaluation results.")
 
-    joblib.dump(model, output_path)
-    logger.success(f"Model saved to: {output_path}")
+        results[metric] = score
+
+        if score < threshold:
+            raise ValueError(
+                f"[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
+            )
+
+    return results

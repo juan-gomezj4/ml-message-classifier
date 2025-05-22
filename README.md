@@ -1,127 +1,294 @@
-# ml-message-classifier
+# Proyecto MLOps - Clasificación de Mensajes en Batch
 
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/charliermarsh/ruff/main/assets/badge/v2.json)](https://github.com/charliermarsh/ruff)
-[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
-[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
-[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+La solución refleja un enfoque práctico -mantenible, reproducible y escalable- para implementar sistemas de ML en producción, aplicando buenas prácticas de MLOps desde la experimentación hasta el despliegue.
 
-## ✨ Features and Tools
+El proyecto consiste en un sistema batch que automatiza la clasificación de mensajes enviados por usuarios a un canal de atención, simulados mediante reseñas del **Yelp Open Dataset**. Se diseñó una arquitectura modular basada en el enfoque **FTI (Feature - Training - Inference)**, con énfasis en mantenibilidad, reproducibilidad y escalabilidad.
 
-Features                                     | Package  | Why?
- ---                                         | ---      | ---
-Dependencies and env                         | [UV] | [article](https://astral.sh/blog/uv)
-Project configuration file                   | [Hydra]  |  [article](https://mathdatasimplified.com/2023/05/25/stop-hard-coding-in-a-data-science-project-use-configuration-files-instead/)
-Lint - Format, sort imports  (Code Quality)  | [Ruff] | [article](https://www.sicara.fr/blog-technique/boost-code-quality-ruff-linter)
-Static type checking                         | [Mypy] | [article](https://python.plainenglish.io/does-python-need-types-79753b88f521)
-code security                                | [bandit] | [article](https://blog.bytehackr.in/secure-your-python-code-with-bandit)
-Code quality & security each commit          | [pre-commit] | [article](https://dev.to/techishdeep/maximize-your-python-efficiency-with-pre-commit-a-complete-but-concise-guide-39a5)
-Test code                                    | [Pytest] | [article](https://realpython.com/pytest-python-testing/)
-Test coverage                                | [coverage.py] [codecov] | [article](https://martinxpn.medium.com/test-coverage-in-python-with-pytest-86-100-days-of-python-a3205c77296)
+La implementación considera el ciclo completo: desde la ingesta de datos y procesamiento, hasta el entrenamiento, predicción y activación de reentrenamiento bajo condiciones controladas.
 
-## Install dependencies
+Este repositorio contiene todo el código, configuraciones y artefactos necesarios para replicar la solución.
 
-After init the environment to install a new package, run:
+## **Objetivo**
 
-```bash
-uv add <package-name>
-```
+El objetivo técnico fue desarrollar un sistema de clasificación de mensajes en batch, alineado con principios de MLOps y capaz de escalar hacia entornos productivos.
 
-Example to install [plotly](https://plotly.com/python/) in dev group:
+***La prioridad no estuvo en optimizar cada línea de código***, sino en definir una **arquitectura clara**, una **lógica desacoplada entre etapas** y un flujo robusto de punta a punta. Se diseñó una solución que refleja cómo se debe estructurar un sistema de ML real, más allá de un simple modelo funcional.
 
-```bash
-uv add --group dev plotly
-```
+El proyecto priorizó:
 
-## 🗃️ Project structure
+- **Diseñar pipelines desacoplados**, compatibles con ejecución secuencial o por orquestador.
+- **Definir pasos explícitos por etapa** (extracción, validación, agregación, etc.), facilitando la trazabilidad del flujo.
+- **Aplicar validaciones automáticas** de datos y modelos con `pandera` y métricas definidas.
+- **Controlar dependencias y calidad del código** mediante herramientas como `uv`, `hydra`, `ruff`, `mypy`, `bandit`, `pre-commit`, `pytest` y `coverage.py`.
+- **Simular condiciones realistas de producción**, incluyendo detección de drift, uso de feature store y reentrenamiento automático.
 
-- [Data structure]
-- [Pipelines based on Feature/Training/Inference Pipelines](https://www.hopsworks.ai/post/mlops-to-ml-systems-with-fti-pipelines)
+Este enfoque permitió construir un sistema sólido y extensible, listo para ser escalado o refactorizado sin comprometer su arquitectura base.
 
-```bash
-.
-├── codecov.yml                         # configuration for codecov
-├── .code_quality
-│   ├── mypy.ini                        # mypy configuration
-│   └── ruff.toml                       # ruff configuration
-├── data
-│   ├── 01_raw                          # raw immutable data
-│   ├── 02_intermediate                 # typed data
-│   ├── 03_primary                      # domain model data
-│   ├── 04_feature                      # model features
-│   ├── 05_model_input                  # often called 'master tables'
-│   ├── 06_models                       # serialized models
-│   ├── 07_model_output                 # data generated by model runs
-│   ├── 08_reporting                    # reports, results, etc
-│   └── README.md                       # description of the data structure
-├── docs                                # documentation for your project
-├── .editorconfig                       # editor configuration
-├── .github                             # github configuration
-│   ├── dependabot.md                   # github action to update dependencies
-│   ├── pull_request_template.md        # template for pull requests
-│   └── workflows                       # github actions workflows
-│       ├── ci.yml                      # run continuous integration (tests, pre-commit, etc.)
-│       ├── dependency_review.yml       # review dependencies
-│       ├── docs.yml                    # build documentation (mkdocs)
-│       └── pre-commit_autoupdate.yml   # update pre-commit hooks
-├── .gitignore                          # files to ignore in git
-├── Makefile                            # useful commands to setup environment, run tests, etc.
-├── models                              # store final models
-├── notebooks
-│   ├── 1-data                          # data extraction and cleaning
-│   ├── 2-exploration                   # exploratory data analysis (EDA)
-│   ├── 3-analysis                      # Statistical analysis, hypothesis testing.
-│   ├── 4-feat_eng                      # feature engineering (creation, selection, and transformation.)
-│   ├── 5-models                        # model training, evaluation, and hyperparameter tuning.
-│   ├── 6-interpretation                # model interpretation
-│   ├── 7-deploy                        # model packaging, deployment strategies.
-│   ├── 8-reports                       # story telling, summaries and analysis conclusions.
-│   ├── notebook_template.ipynb         # template for notebooks
-│   └── README.md                       # information about the notebooks
-├── .pre-commit-config.yaml             # configuration for pre-commit hooks
-├── pyproject.toml                      # dependencies for the python project
-├── README.md                           # description of your project
-├── src                                 # source code for use in this project
-│   ├── README.md                       # description of src structure
-│   ├── tmp_mock.py                     # example python file
-│   ├── data                            # data extraction, validation, processing, transformation
-│   ├── model                           # model training, evaluation, validation, export
-│   ├── inference                       # model prediction, serving, monitoring
-│   └── pipelines                       # orchestration of pipelines
-│       ├── feature_pipeline            # transforms raw data into features and labels
-│       ├── training_pipeline           # transforms features and labels into a model
-│       └── inference_pipeline          # takes features and a trained model for predictions
-├── tests                               # test code for your project
-│   ├── test_mock.py                    # example test file
-│   ├── data                            # tests for data module
-│   ├── model                           # tests for model module
-│   ├── inference                       # tests for inference module
-│   └── pipelines                       # tests for pipelines module
-└── .vscode                             # vscode configuration
-    ├── extensions.json                 # list of recommended extensions
-    ├── launch.json                     # vscode launch configuration
-    └── settings.json                   # vscode settings
-```
+## Arquitectura del sistema
 
-## Credits
+La solución sigue la arquitectura FTI (Feature → Training → Inference), separando claramente la lógica de transformación, entrenamiento e inferencia. Cada etapa fue implementada como un pipeline independiente, permitiendo trazabilidad, reutilización de componentes y mantenibilidad.
 
-This project was generated from [@JoseRZapata]'s [data science project template] template.
+El flujo completo también contempla la lógica de reentrenamiento ante degradación del modelo.
 
 ---
-[@JoseRZapata]: https://github.com/JoseRZapata
 
-[bandit]: https://github.com/PyCQA/bandit
-[codecov]: https://codecov.io/
-[Cookiecutter]:https://cookiecutter.readthedocs.io/en/stable/
-[coverage.py]: https://coverage.readthedocs.io/
-[Cruft]: https://cruft.github.io/cruft/
-[data science project template]: https://github.com/JoseRZapata/data-science-project-template
-[Data structure]: https://github.com/JoseRZapata/data-science-project-template/blob/main/ml-message-classifier/data/README.md
-[hydra]: https://hydra.cc/
-[Mypy]: http://mypy-lang.org/
-[Notebook template]: ml-message-classifier/notebooks/notebook_template.ipynb
-[pre-commit]: https://pre-commit.com/
-[Pull Request template]: ml-message-classifier/.github/pull_request_template.md
-[Pytest]: https://docs.pytest.org/en/latest/
-[Ruff]: https://docs.astral.sh/ruff/
-[UV]: https://docs.astral.sh/uv/
+### 🟧 Feature Pipeline
+
+Toma los datos crudos desde Yelp y los transforma en un conjunto de features limpios, validados y listos para modelar.
+
+Pasos implementados:
+- `extract`: lectura de nuevos datos.
+- `remove duplicates`: eliminación de duplicados.
+- `validate`: validación de estructura y tipos con `pandera`.
+- `clean text`: preprocesamiento básico del texto.
+- `create new features`: variables derivadas.
+- `embedding`: transformación del texto en vectores numéricos.
+
+[📎 Ver Feature Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/feature_pipeline.html)
+
+---
+
+### 🟩 Training Pipeline
+
+Utiliza los datos procesados para generar un modelo entrenado. Mantiene consistencia entre entrenamiento y validación, asegurando que las transformaciones aplicadas en producción sean equivalentes.
+
+Pasos implementados:
+- `imputer`: imputación de valores nulos.
+- `encoding`: codificación de variables.
+- `scaler`: escalado de variables numéricas.
+- `dimensionality reducer`: reducción opcional de dimensionalidad.
+- `training`: entrenamiento del modelo.
+- `validate`: evaluación con métricas definidas.
+
+[📎 Ver Training Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/training_pipeline.html)
+
+---
+
+### 🟦 Inference Pipeline
+
+Aplica el modelo entrenado sobre nuevos datos manteniendo la misma lógica de transformación que en el entrenamiento.
+
+Pasos implementados:
+- Repite el mismo flujo de Feature Pipeline para nuevos datos.
+- Carga el `Pipeline Trainer` con los artefactos del modelo.
+- Aplica `predict` y entrega resultados listos para gestión operativa.
+
+
+
+---
+
+### 🔁 Lógica de reentrenamiento
+
+El sistema activa el reentrenamiento automático cuando se detecta sesgo en las predicciones (por ejemplo, si cualquier clase predicha representa menos del 10% o más del 90% del total). En ese caso:
+
+- Se extraen nuevos datos.
+
+- Se ejecuta nuevamente el Feature Pipeline.
+
+- Se actualiza el modelo usando el mismo algoritmo y configuración actual (no se ajustan hiperparámetros).
+
+- El Pipeline Trainer es reescrito con los nuevos datos.
+
+Este proceso permite mantener el modelo actualizado ante cambios en la distribución de los datos sin modificar su estructura base.
+
+## Diccionario de datos
+
+Para esta solución se utilizó el Yelp Open Dataset como simulación de mensajes enviados por usuarios a un canal de atención. A partir de este conjunto se estructuraron las tablas base que alimentan el pipeline.
+
+### 🧑‍💼 Tabla: `user`
+
+| Campo                  | Tipo     | Descripción                                                                 |
+|------------------------|----------|-----------------------------------------------------------------------------|
+| `user_id`              | string   | ID único del usuario                                                        |
+| `name`                 | string   | Nombre del usuario                                                          |
+| `review_count`         | int      | Número total de reseñas escritas                                           |
+| `yelping_since`        | string   | Fecha en que se unió a Yelp (AAAA-MM-DD)                                   |
+| `useful`               | int      | Votos 'useful' recibidos                                                    |
+| `funny`                | int      | Votos 'funny' recibidos                                                     |
+| `cool`                 | int      | Votos 'cool' recibidos                                                      |
+| `elite`                | string   | Años como usuario elite (separados por coma o vacío)                        |
+| `friends`              | string   | Lista de IDs de amigos (separados por coma o vacío)                         |
+| `fans`                 | int      | Número de seguidores                                                        |
+| `average_stars`        | float    | Promedio de estrellas que ha dado                                           |
+
+---
+
+### 🏢 Tabla: `business`
+
+| Campo           | Tipo     | Descripción                                               |
+|-----------------|----------|-----------------------------------------------------------|
+| `business_id`   | string   | ID único del negocio                                      |
+| `name`          | string   | Nombre del negocio                                        |
+| `address`       | string   | Dirección                                                 |
+| `city`          | string   | Ciudad                                                    |
+| `state`         | string   | Estado o región                                           |
+| `postal_code`   | string   | Código postal                                             |
+| `latitude`      | float    | Latitud geográfica                                        |
+| `longitude`     | float    | Longitud geográfica                                       |
+| `stars`         | float    | Promedio de estrellas recibido                           |
+| `review_count`  | int      | Número total de reseñas recibidas                        |
+| `is_open`       | int      | Indicador de si el negocio está abierto (1) o cerrado (0)|
+| `attributes`    | string   | Información adicional sobre el negocio (JSON u objeto)   |
+| `categories`    | string   | Categorías a las que pertenece el negocio                |
+| `hours`         | string   | Horario de atención (JSON u objeto)                      |
+
+---
+
+### 📝 Tabla: `review`
+
+| Campo         | Tipo        | Descripción                                                        |
+|---------------|-------------|--------------------------------------------------------------------|
+| `review_id`   | string      | ID único de la reseña                                              |
+| `user_id`     | string      | ID del usuario que hizo la reseña (relación con `user.user_id`)    |
+| `business_id` | string      | ID del negocio reseñado (relación con `business.business_id`)      |
+| `stars`       | int         | Calificación en estrellas dada por el usuario                      |
+| `useful`      | int         | Votos 'useful' que recibió la reseña                               |
+| `funny`       | int         | Votos 'funny' que recibió la reseña                                |
+| `cool`        | int         | Votos 'cool' que recibió la reseña                                 |
+| `text`        | string      | Texto completo de la reseña                                        |
+| `date`        | datetime    | Fecha en que se escribió la reseña                                 |
+
+
+## Decisiones técnicas
+
+Durante el desarrollo del sistema se tomaron decisiones centradas una solución reproducible, mantenible, escalable  y criterios reales de ingeniería, más allá de la construcción de un modelo puntual. A continuación, se describen los principales puntos técnicos:
+
+---
+
+### 🔨 Modularidad y diseño de pipelines
+
+- Se definió una arquitectura **FTI (Feature - Training - Inference)** que permite separar responsabilidades y facilita testing, mantenimiento y reusabilidad.
+- Cada pipeline está desacoplado y puede ejecutarse en forma independiente o como parte de un flujo orquestado.
+
+---
+
+### 🧠 Feature Store
+
+- Se implementó una estructura que permite reutilizar las features generadas entre entrenamiento e inferencia.
+- Esto asegura coherencia en la transformación y reduce tiempos de cómputo en producción.
+
+---
+
+### 📦 Entorno y gestión de dependencias
+
+- Se utilizó `uv` para garantizar entornos reproducibles, ligeros y aislados.
+- La configuración del proyecto se gestiona con `hydra`, evitando hardcoding y facilitando la parametrización de pipelines.
+
+---
+
+### 🧪 Validación y calidad del código
+
+- Se integraron `pre-commit` hooks para asegurar validaciones constantes sobre el código.
+- Uso de `ruff` (linter + formatter), `mypy` (tipado estático) y `bandit` (seguridad).
+- Las transformaciones y validaciones de datos estructurales se implementaron con `pandera`.
+- Testing funcional cubierto con `pytest`, con tracking de cobertura (`coverage.py`).
+
+---
+
+### 🧬 Selección de variables
+
+Para reducir la dimensionalidad y evitar ruido, se implementó un pipeline específico que incluye:
+
+- Eliminación de variables constantes.
+- Eliminación de variables altamente correlacionadas.
+- Selección de variables basadas en importancia usando un Random Forest.
+
+Esto permitió construir un conjunto de features compacto y relevante, manteniendo la interpretabilidad del modelo.
+
+---
+
+### 🎯 Construcción de la variable objetivo y métrica seleccionada
+
+Se trató como un problema de clasificación multiclase, donde la variable objetivo fue construida a partir de las estrellas de calificación de la reseña (`stars`) del dataset de Yelp:
+
+- `0` → calificaciones menores o iguales a 2.
+- `1` → calificaciones de 3.
+- `2` → calificaciones de 4 o 5.
+
+Dado que no se aplicó balanceo de clases y se buscaba una métrica robusta ante desbalance, se utilizó **F1-score ponderado (`f1_weighted`)** para la selección del modelo final.
+
+---
+
+### ⚙️ Modelado y experimentación
+
+- No se aplicó un benchmark exhaustivo, pero se probaron múltiples algoritmos incluyendo AutoML.
+- El mejor modelo fue seleccionado por desempeño base y luego afinado con `GridSearchCV`.
+- El foco no estuvo en optimización algorítmica, sino en asegurar un sistema replicable y extensible.
+
+---
+
+### 🔄 Coherencia entre entrenamiento e inferencia
+
+Se garantizó la coherencia entre etapas identificando claramente las responsabilidades de cada una, definiendo su orden en un diagrama general de solución, y encapsulando la lógica dentro de `PipelineTrainer`. Esto asegura que el flujo de transformación en inferencia sea equivalente al usado durante el entrenamiento.
+
+---
+
+### ✅ Validación del flujo end-to-end
+
+Aunque se trata de un proyecto de prueba técnica, se implementaron estrategias reales para asegurar trazabilidad:
+
+- Cada paso del Feature Pipeline guarda una versión intermedia de los datos para su inspección.
+- Se incluyeron `loggers` en todo el flujo para facilitar seguimiento y debugging.
+- Se probaron corridas con subconjuntos pequeños (1.000–2.000 registros) para validar la lógica general antes de escalar.
+- El desarrollo partió de una versión básica en notebooks, sin clases, que permitió validar la idea general antes de modularizar.
+
+---
+
+### 🔁 Lógica de reentrenamiento
+
+- Se diseñó una condición simple para activar reentrenamiento (sesgo en clases predichas).
+- El reentrenamiento solo actualiza el modelo con nuevos datos. No modifica el algoritmo ni sus hiperparámetros.
+- El pipeline mantiene la lógica y consistencia en cada ejecución.
+
+---
+
+### ☁️ Preparación para producción
+
+- Aunque el flujo fue probado localmente, se definieron componentes para despliegue en AWS (Glue, Step Functions, S3, Lambda).
+- Se estableció una estrategia de monitoreo basada en métricas clave del flujo y del modelo.
+- Se propuso la integración con SNS para alertas y Lambda para ejecución automática ante errores o drift.
+
+## Estructura del proyecto
+
+La organización del repositorio sigue principios de separación de responsabilidades, modularidad y trazabilidad. A continuación se describe la estructura principal:
+```
+├── conf/                           # Configuración del proyecto por etapa (feature, training, inference)
+│   ├── data_feature/
+│   ├── model_inference/
+│   └── model_training/
+│
+├── data/                           # Capas de datos según el flujo FTI
+│   ├── 01_raw/                     # Archivos originales del dataset (Yelp)
+│   ├── 02_intermediate/           # Datos validados
+│   ├── 03_primary/                # Datos agregados y comprimidos
+│   ├── 04_feature/                # Dataset final con features (MIT)
+│   ├── 05_model_input/            # Dataset listo para modelado
+│   ├── 06_models/                 # Parámetros y metadata del mejor modelo
+│   ├── 07_model_output/           # Resultados de predicción
+│   ├── 08_reporting/              # Métricas y visualizaciones
+│   └── 09_inference/              # Datos de entrada/salida para inferencia
+│
+├── docs/                          # Documentación en formato Markdown
+│
+├── models/                        # Artefactos del modelo serializado (.pkl)
+│
+├── notebooks/                     # Exploración, experimentación y pruebas manuales
+│
+├── src/                           # Código fuente modular del proyecto
+│   ├── data/                      # Módulos para extracción, validación, agregación, etc.
+│   ├── inference/                 # Lógica de inferencia y carga del modelo
+│   ├── model/                     # Entrenamiento, transformación y validación del modelo
+│   ├── pipelines/                # Definición de los pipelines FTI
+│   │   ├── feature_pipeline/
+│   │   ├── training_pipeline/
+│   │   └── inference_pipeline/
+│
+├── tests/                         # Estructura básica para pruebas por componente
+│
+├── start_batch_nlp.py            # Script principal para ejecutar el sistema
+├── Makefile                      # Comandos automatizados (ej. test, lint, run)
+├── pyproject.toml                # Configuración general del proyecto (mypy, ruff, etc.)
+├── uv.lock                       # Lockfile para gestión de dependencias con uv
+├── codecov.yml                   # Configuración de cobertura de código
+└── README.md                     # Documento principal del proyecto
+

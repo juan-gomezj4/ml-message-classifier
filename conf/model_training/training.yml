@@ -11,9 +11,10 @@ model:
   classifier: xgboost.XGBClassifier
   params:
     n_estimators: 100
-    max_depth: 4
-    use_label_encoder: False
-    eval_metric: logloss
+    max_depth: 7
+    learning_rate: 0.3
+    subsample: 0.8
+    eval_metric: merror
 
 target_column: target
 test_size: 0.2
@@ -27,4 +28,5 @@ metric_thresholds:
 
 outputs:
   model_path: models/final_model_v1.pkl
-  metrics_path: models/metrics.parquet
+  training_output_transform_path: data/08_reporting/training_pipeline.html
+  metrics_path: data/08_reporting/final_model_metrics_v1.parquet

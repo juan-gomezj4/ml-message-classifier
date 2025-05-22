@@ -33,8 +33,13 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        logger.info(f"Dropping columns: {self.categorical + self.numerical + self.string + self.date}")
+        logger.info(
+            f"Dropping columns: {self.categorical + self.numerical + self.string + self.date}"
+        )
         # Step 1: Drop specified columns
-        X_compressed = X.drop(columns=self.categorical + self.numerical + self.string + self.date, errors="ignore")
+        X_compressed = X.drop(
+            columns=self.categorical + self.numerical + self.string + self.date,
+            errors="ignore",
+        )
         logger.success("DataFrame compressed.")
         return X_compressed

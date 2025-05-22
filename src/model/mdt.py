@@ -140,31 +140,30 @@ class EncodingTransformer(BaseEstimator, TransformerMixin):
 
 class GroupMeanImputer(BaseEstimator, TransformerMixin):
     """
-    Impute missing values in specified columns using the group-wise
-    mean of the target variable.
+    Impute missing values using the group-wise mean of the target variable during fit.
+    At transform time, if the class label is not available, falls back to the global mean.
     """
 
     def __init__(self, columns_imputer: list[str]) -> None:
         self.columns_imputer = columns_imputer
         self.group_means_: dict[str, dict[Any, float]] = {}
-        self.y_: pd.Series | None = None
+        self.global_means_: dict[str, float] = {}
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "GroupMeanImputer":
-        self.y_ = y.reset_index(drop=True)
         logger.info("Fitting GroupMeanImputer.")
         for col in self.columns_imputer:
-            self.group_means_[col] = X[col].groupby(self.y_).mean().to_dict()
+            self.group_means_[col] = X[col].groupby(y).mean().to_dict()
+            self.global_means_[col] = X[col].mean()
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if self.y_ is None or not self.group_means_:
+        if not self.group_means_ or not self.global_means_:
             raise RuntimeError("Must call fit() before transform().")
 
         logger.info("Transforming data with GroupMeanImputer.")
-        X = X.copy().reset_index(drop=True)
+        X = X.copy()
         for col in self.columns_imputer:
-            group_mean_map = self.group_means_[col]
-            X[col] = X[col].where(~X[col].isna(), self.y_.map(group_mean_map))
+            X[col] = X[col].fillna(self.global_means_[col])
         return X
 
 
@@ -218,13 +217,17 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
         self.selected_columns_: list[str] | None = None
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "DimensionalityReducer":
+        """
+        Fit the dimensionality reduction pipeline and store the final selected feature names.
+        """
+
+        logger.info("Fitting DimensionalityReducer.")
+
+        # 1. Pipeline dimensionality reduction
         self.pipeline = Pipeline(
             [
                 ("drop_constant", DropConstantFeatures()),
-                (
-                    "drop_correlated",
-                    DropCorrelatedFeatures(threshold=self.corr_threshold),
-                ),
+                ("drop_correlated", DropCorrelatedFeatures(threshold=self.corr_threshold)),
                 (
                     "target_selector",
                     SelectBySingleFeaturePerformance(
@@ -240,10 +243,30 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
                 ),
             ]
         )
-        logger.info("Fitting DimensionalityReducer.")
+
+        # 2.Fit the pipeline
         self.pipeline.fit(X, y)
-        X_reduced = self.pipeline.transform(X)
-        self.selected_columns_ = [f"feature_{i}" for i in range(X_reduced.shape[1])]
+
+        # 3. Get the input columns
+        intermediate_pipeline = Pipeline(self.pipeline.steps[:-1])
+        X_intermediate = intermediate_pipeline.transform(X)
+
+        if isinstance(X_intermediate, pd.DataFrame):
+            input_columns = X_intermediate.columns
+        else:
+            input_columns = [f"feature_{i}" for i in range(X_intermediate.shape[1])]
+
+        # 4. Extract mask and apply it correctly
+        selector = self.pipeline.named_steps["target_selector"]
+        mask = selector.get_support()
+        if len(mask) != len(input_columns):
+            raise ValueError(
+                f"Column mismatch: selector mask size {len(mask)} "
+                f"≠ input column size {len(input_columns)}"
+            )
+
+        self.selected_columns_ = [col for col, keep in zip(input_columns, mask) if keep]
+
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -259,7 +282,7 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
 class MDTYelpData(BaseEstimator, TransformerMixin):
     """
     Apply model-dependent transformations for classification:
-    - Imputation by group mean
+    - Imputation by group mean (only if missing values exist)
     - One-hot encoding
     - Scaling
     - Dimensionality reduction
@@ -283,21 +306,27 @@ class MDTYelpData(BaseEstimator, TransformerMixin):
         self.encoder: EncodingTransformer | None = None
         self.scaler: ScalerTransformer | None = None
         self.reducer: DimensionalityReducer | None = None
+        self.skip_imputation: bool = False
 
     def fit(self, X: pd.DataFrame, y: pd.Series) -> "MDTYelpData":
         logger.info("Fitting MDTYelpData...")
-        # Imputation
+
+        # Imputation (only if needed)
         cols_with_na = X.columns[X.isnull().any()].tolist()
-        self.imputer = GroupMeanImputer(columns_imputer=cols_with_na)
-        X = self.imputer.fit_transform(X, y)
+        if cols_with_na:
+            self.imputer = GroupMeanImputer(columns_imputer=cols_with_na)
+            X = self.imputer.fit(X, y).transform(X)
+        else:
+            logger.info("No missing values detected. Skipping imputation.")
+            self.skip_imputation = True
 
         # Encoding
         self.encoder = EncodingTransformer()
-        X = self.encoder.fit_transform(X)
+        X = self.encoder.fit(X).transform(X)
 
         # Scaling
         self.scaler = ScalerTransformer()
-        X = self.scaler.fit_transform(X)
+        X = self.scaler.fit(X).transform(X)
 
         # Dimensionality Reduction
         self.reducer = DimensionalityReducer(
@@ -310,10 +339,14 @@ class MDTYelpData(BaseEstimator, TransformerMixin):
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        if not all([self.imputer, self.encoder, self.scaler, self.reducer]):
+        if not all([self.encoder, self.scaler, self.reducer]):
             raise RuntimeError("MDTYelpData must be fitted before calling transform().")
+
         logger.info("Transforming data with MDTYelpData...")
-        X = self.imputer.transform(X)
+
+        if not self.skip_imputation and self.imputer is not None:
+            X = self.imputer.transform(X)
+
         X = self.encoder.transform(X)
         X = self.scaler.transform(X)
         X = self.reducer.transform(X)

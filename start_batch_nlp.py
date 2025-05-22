@@ -1,12 +1,13 @@
 import argparse
 from pathlib import Path
+from typing import Callable
 
+import pandas as pd
 from loguru import logger
 from omegaconf import OmegaConf
-import pandas as pd
 
-from src.pipelines.feature_pipeline.feature_pipeline import run_feature_pipeline
 from src.model.mdt import transform_stars_to_target
+from src.pipelines.feature_pipeline.feature_pipeline import run_feature_pipeline
 from src.pipelines.training_pipeline.training_pipeline import run_training_pipeline
 
 # Base directory
@@ -39,7 +40,7 @@ def main(stage: str) -> None:
         stage: Pipeline stage to run (F=Feature, T=Training, I=Inference, FTI=All)
     """
     stage = stage.upper().strip()
-    STAGE_FUNCTIONS = {
+    STAGE_FUNCTIONS: dict[str, list[Callable[[], None]]] = {
         "F": [run_feature_pipeline],
         "T": [run_training_stage],
         "I": [lambda: logger.warning("🔧 Stage I (inference) not yet implemented.")],

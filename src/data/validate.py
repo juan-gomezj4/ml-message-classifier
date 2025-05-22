@@ -3,7 +3,16 @@ from typing import Any
 
 import pandas as pd
 from loguru import logger
+from pandas.api.types import (
+    is_bool_dtype,
+    is_float_dtype,
+    is_integer_dtype,
+    is_object_dtype,
+    is_string_dtype,
+)
 from sklearn.base import BaseEstimator, TransformerMixin
+
+from src.utils.io_utils import save_if_needed
 
 
 class ValidateYelpData(BaseEstimator, TransformerMixin):
@@ -47,35 +56,20 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         self.col_date = col_date
         self.output_path = Path(output_path) if output_path else None
 
-    def fit(self, X: pd.DataFrame) -> "ValidateYelpData":
+    def fit(self, X: Any | None = None) -> "ValidateYelpData":
         """
-        Fit method (no-op). Returns self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            ValidateYelpData: Returns self.
+            ValidateYelpData: self
         """
         return self
 
-    # Save dato to parquet if output path is specified
-    def _save_if_needed(self, df: pd.DataFrame) -> None:
-        """
-        Save DataFrame to parquet if output path is specified.
-
-        Args:
-            df (pd.DataFrame): DataFrame to save.
-
-        Returns:
-            None
-        """
-        if self.output_path:
-            logger.info(f"Saving validated data to {self.output_path}")
-            df.to_parquet(self.output_path, index=False)
-
     # Helper function to safely cast columns to a specified dtype
-    def _safe_cast(self, df: pd.DataFrame, cols: list[str], dtype: str) -> pd.DataFrame:
+    def _safe_cast(self, df: pd.DataFrame, cols: list[str], dtype: Any) -> pd.DataFrame:
         """
         Cast columns to specified dtype if they exist in the DataFrame.
         """
@@ -97,16 +91,16 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
             Dict[str, bool]: Dictionary of type checks with column names as keys
             and boolean values indicating if the check passed.
         """
+        logger.info("Verifying data types")
         type_checks = {}
-
         type_map = {
-            "categoric": (self.cols_categoric, pd.api.types.is_categorical_dtype),
-            "float": (self.cols_numeric_float, pd.api.types.is_float_dtype),
-            "int": (self.cols_numeric_int, pd.api.types.is_integer_dtype),
-            "bool": (self.cols_boolean, pd.api.types.is_bool_dtype),
+            "categoric": (self.cols_categoric, is_string_dtype),
+            "float": (self.cols_numeric_float, is_float_dtype),
+            "int": (self.cols_numeric_int, is_integer_dtype),
+            "bool": (self.cols_boolean, is_bool_dtype),
             "string": (
                 self.cols_string,
-                lambda col: pd.api.types.is_string_dtype(col) or pd.api.types.is_object_dtype(col),
+                lambda col: is_string_dtype(col) or is_object_dtype(col),
             ),
         }
 
@@ -116,10 +110,9 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
 
         # Check datetime column separately
         if self.col_date in X.columns:
-            type_checks[f"{self.col_date}_is_datetime"] = pd.api.types.is_datetime64_dtype(
-                X[self.col_date]
+            type_checks[f"{self.col_date}_is_datetime"] = (
+                pd.api.types.is_datetime64_dtype(X[self.col_date])
             )
-
         return type_checks
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -165,7 +158,8 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
             logger.info("All type verifications passed")
 
         # 4. Save if needed
-        self._save_if_needed(X)
+        logger.info("Saving validated data if output path is provided")
+        save_if_needed(X, self.output_path)
 
         logger.info("Data validation completed successfully")
         return X

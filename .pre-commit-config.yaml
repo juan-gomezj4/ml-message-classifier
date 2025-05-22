@@ -3,24 +3,27 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-yaml
-        exclude: ^(mkdocs\.yml|{{cookiecutter.repo_name}}/mkdocs\.yml)$
       - id: check-case-conflict
       - id: debug-statements
       - id: detect-private-key
       - id: check-merge-conflict
       - id: check-added-large-files
-        args: [--maxkb=100000] # 100MB
+        args: [--maxkb=100000]
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        exclude: ^(poetry\.lock|.*\.ipynb)$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
     rev: v0.11.10
     hooks:
-      # Run the linter
       - id: ruff
         args:
           - --fix
           - --config
-          - .code_quality/ruff.toml # Run the formatter.
+          - .code_quality/ruff.toml
       - id: ruff-format
         args:
           - --config
@@ -32,22 +35,3 @@ repos:
       - id: mypy
         args:
           - --config-file=.code_quality/mypy.ini
-
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
-    hooks:
-      - id: detect-secrets
-        exclude: ^(poetry\.lock|\.cruft\.json|.*\.ipynb)$
-      - id: detect-secrets
-        name: 'detect-secrets-jupyter'
-        args: ['--exclude-files', '.*[^i][^p][^y][^n][^b]$', '--exclude-lines', '"(hash|id|image/\w+)":.*', ]
-
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.7.2
-    hooks:
-      - id: commitizen
-      - id: commitizen-branch
-        stages: [pre-push]
-
-ci:
-  autoupdate_schedule: weekly

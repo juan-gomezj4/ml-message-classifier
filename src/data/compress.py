@@ -4,6 +4,8 @@ import pandas as pd
 from loguru import logger
 from sklearn.base import BaseEstimator, TransformerMixin
 
+from src.utils.io_utils import save_if_needed
+
 
 class DropColumnsTransformer(BaseEstimator, TransformerMixin):
     """
@@ -17,15 +19,15 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
         """
         self.columns = columns
 
-    def fit(self, X: pd.DataFrame) -> "DropColumnsTransformer":
+    def fit(self, X: Any | None = None) -> "DropColumnsTransformer":
         """
-        No fitting is needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            DropColumnsTransformer: Returns self.
+            DropColumnsTransformer: self
         """
         return self
 
@@ -40,6 +42,7 @@ class DropColumnsTransformer(BaseEstimator, TransformerMixin):
         Returns:
             pd.DataFrame: DataFrame with specified columns dropped.
         """
+        logger.info(f"Dropping columns: {self.columns}")
         return X.drop(columns=self.columns, errors="ignore")
 
 
@@ -53,7 +56,7 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
         categorical: list[str],
         numerical: list[str],
         string: list[str],
-        data: list[str],
+        date: list[str],
         output_path: str | None = None,
     ) -> None:
         """
@@ -68,7 +71,7 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
         self.categorical = categorical
         self.numerical = numerical
         self.string = string
-        self.data = data
+        self.date = date
         self.output_path = output_path
 
         # Create transformers for each group of columns to drop
@@ -76,32 +79,20 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
             DropColumnsTransformer(columns=self.categorical),
             DropColumnsTransformer(columns=self.numerical),
             DropColumnsTransformer(columns=self.string),
-            DropColumnsTransformer(columns=self.data),
+            DropColumnsTransformer(columns=self.date),
         ]
 
-    def fit(self, X: pd.DataFrame) -> "CompressYelpData":
+    def fit(self, X: Any | None = None) -> "CompressYelpData":
         """
-        No fitting is needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            CompressYelpData: Returns self.
+            CompressYelpData: self
         """
         return self
-
-    # Save data to parquet if output path is specified
-    def _save_if_needed(self, df: pd.DataFrame) -> None:
-        """
-        Save the DataFrame to parquet if output_path is set.
-
-        Args:
-            df (pd.DataFrame): DataFrame to save.
-        """
-        if self.output_path:
-            logger.info(f"Saving merged data to {self.output_path}")
-            df.to_parquet(self.output_path, index=False)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -113,16 +104,19 @@ class CompressYelpData(BaseEstimator, TransformerMixin):
         Returns:
             pd.DataFrame: Compressed DataFrame with specified columns dropped.
         """
-        # Apply all drop transformers
+        # Step 1: Apply all drop transformers
         logger.info("Compressing DataFrame by dropping specified columns.")
         X_compressed = X.copy()
         for dropper in self.group_droppers:
             X_compressed = dropper.transform(X_compressed)
+        logger.info(
+            f"Columns dropped: {self.categorical + self.numerical + self.string + self.date}"
+        )
         logger.info("DataFrame compressed successfully.")
 
-        # Save if needed
+        # Step 2: Save if needed
         logger.info("Saving compressed DataFrame if output path is specified.")
-        self._save_if_needed(X_compressed)
+        save_if_needed(X_compressed, self.output_path)
 
         return X_compressed
 

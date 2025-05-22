@@ -1,0 +1,34 @@
+### Data mdt configuration
+mdt:
+  stars_column: stars
+  corr_threshold: 0.9
+  importance_threshold: 0.4
+  scoring: f1_weighted
+  target_column: target
+  random_state: 42
+
+mdt_output_path_fit: data/05_model_input/X_train_reduce.parquet
+mdt_output_path_transform: data/05_model_input/X_test_reduce.parquet
+
+
+### Data training configuration
+training:
+  feature_data_path: data/04_feature/review_user_business_mit.parquet
+  test_size: 0.2
+  random_state: 42
+  classifier_fn_path: data/06_models/best_model_name.txt
+  best_params_path: data/06_models/best_params.json
+
+output_path_train: data/05_model_input/X_train.parquet
+output_path_test: data/05_model_input/X_test.parquet
+output_path_ytrain: data/05_model_input/y_train.parquet
+output_path_ytest: data/05_model_input/y_test.parquet
+training_output_transform_path: data/08_reporting/training_pipeline.html
+training_output_pipeline_path: models/training_pipeline.pkl
+
+
+### Data validate configuration
+validate:
+  f1_macro_threshold: 0.7
+  recall_threshold: 0.7
+validate_output_final_model_path: models/final_model.pkl

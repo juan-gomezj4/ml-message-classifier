@@ -6,6 +6,8 @@ from loguru import logger
 from sentence_transformers import SentenceTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
 
+from src.utils.io_utils import save_if_needed
+
 
 class DuplicateRemoverTransformer(BaseEstimator, TransformerMixin):
     """
@@ -15,15 +17,15 @@ class DuplicateRemoverTransformer(BaseEstimator, TransformerMixin):
     def __init__(self) -> None:
         pass
 
-    def fit(self, X: pd.DataFrame) -> "DuplicateRemoverTransformer":
+    def fit(self, X: Any | None = None) -> "DuplicateRemoverTransformer":
         """
-        No fitting is needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            DuplicateRemoverTransformer: Returns self.
+            DuplicateRemoverTransformer: self
         """
         return self
 
@@ -49,15 +51,15 @@ class TextCleanerTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, text: str) -> None:
         self.text = text
 
-    def fit(self, X: pd.DataFrame) -> "TextCleanerTransformer":
+    def fit(self, X: Any | None = None) -> "TextCleanerTransformer":
         """
-        No fitting is needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            TextCleanerTransformer: Returns self.
+            TextCleanerTransformer: self
         """
         return self
 
@@ -86,8 +88,7 @@ class TextCleanerTransformer(BaseEstimator, TransformerMixin):
         ).astype("object")
 
         # Step 3: drop original text column
-        X.drop(columns=[self.text], inplace=True, errors="ignore")
-        return X
+        return X.drop(columns=[self.text])
 
 
 class CategoryStatsTransformer(BaseEstimator, TransformerMixin):
@@ -99,26 +100,16 @@ class CategoryStatsTransformer(BaseEstimator, TransformerMixin):
         self.group_col = group_col
         self.value_col = value_col
 
-    def fit(self, X: pd.DataFrame) -> "CategoryStatsTransformer":
+    def fit(self, X: Any | None = None) -> "CategoryStatsTransformer":
         """
-        Fit the transformer by calculating the mean and std of the value column grouped by the group column.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
-            CategoryStatsTransformer: Returns self.
+            CategoryStatsTransformer: self
         """
-        # Step 1: copy the DataFrame
-        X = X.copy()
-        # Step 2: convert to numeric to avoid type issues
-        X_valid = X[[self.group_col, self.value_col]].dropna()
-
-        # Step 3: calculate mean and std
-        self.group_mean = X_valid.groupby(self.group_col, observed=True)[self.value_col].mean()
-        self.group_std = (
-            X_valid.groupby(self.group_col, observed=True)[self.value_col].std().fillna(0)
-        )
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -132,25 +123,33 @@ class CategoryStatsTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: DataFrame with added mean, std, and relative value columns.
         """
         # Step 1: copy the DataFrame
-        logger.info("Transforming the DataFrame by adding mean, std, and relative value columns.")
+        logger.info(
+            "Transforming the DataFrame by adding mean, std, and relative value columns."
+        )
         X = X.copy()
 
-        # Convert to numeric to avoid type issues
-        X[self.value_col] = pd.to_numeric(X[self.value_col], errors="coerce")
-        avg = pd.to_numeric(X[self.group_col].map(self.group_mean), errors="coerce")
-        std = pd.to_numeric(X[self.group_col].map(self.group_std), errors="coerce")
+        # Step 2: Calculate mean and std for the specified group and value columns
+        group_stats = (
+            X[[self.group_col, self.value_col]]
+            .dropna()
+            .groupby(self.group_col, observed=True)[self.value_col]
+        )
+        group_mean = group_stats.transform("mean")
+        group_std = group_stats.transform("std").fillna(0)
 
-        # Add aggregated columns
-        X[f"{self.value_col}_avg_by_{self.group_col}"] = avg.astype("float32")
-        X[f"{self.value_col}_std_by_{self.group_col}"] = std.astype("float32")
-        X[f"{self.value_col}_relative_to_avg"] = (X[self.value_col] - avg).astype("float32")
+        # Step 3: Add new columns to the DataFrame
+        X[f"{self.value_col}_avg_by_{self.group_col}"] = group_mean.astype("float32")
+        X[f"{self.value_col}_std_by_{self.group_col}"] = group_std.astype("float32")
+        X[f"{self.value_col}_relative_to_avg"] = (
+            X[self.value_col] - group_mean
+        ).astype("float32")
 
         return X
 
 
 class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
     """
-    Generate text embeddings using a pretrained model.
+    Generate text embeddings using a pretrained SentenceTransformer model.
     """
 
     def __init__(
@@ -159,25 +158,32 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         model_name: str,
         n_components: int | None = None,
     ) -> None:
+        """
+        Initialize the transformer.
+
+        Args:
+            text_clean (str): Name of the column containing cleaned text.
+            model_name (str): Name of the pretrained SentenceTransformer model.
+            n_components (Optional[int]): Number of dimensions to retain (if reducing).
+        """
         self.text_clean = text_clean
         self.model_name = model_name
         self.n_components = n_components
+        self.model = SentenceTransformer(model_name)
 
-    def fit(self, X: pd.DataFrame) -> "TextEmbeddingTransformer":
+    def fit(
+        self, X: Any | None = None, y: Any | None = None
+    ) -> "TextEmbeddingTransformer":
         """
-        Fit the transformer by loading the embedding model.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
+            y: Ignored.
 
         Returns:
-            TextEmbeddingTransformer: Returns self.
+            TextEmbeddingTransformer: self
         """
-        # Step 1: copy the DataFrame
-        X = X.copy()
-
-        # Step 2: Load embedding model
-        self.model = SentenceTransformer(self.model_name)
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -191,22 +197,26 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: DataFrame with added embedding columns.
         """
         logger.info("Transforming the DataFrame by generating text embeddings.")
-        # Step 1: copy the DataFrame
+
+        # Copy to avoid modifying the original DataFrame
         X = X.copy()
 
-        # Step 2: Check column not null
-        texts = X[self.text_clean].fillna("").tolist()
+        # Get list of texts, replacing NaNs with empty strings
+        texts = X[self.text_clean].fillna("").astype(str).tolist()
 
-        # Step 3: Generate embeddings
+        # Encode texts into embeddings
         embeddings = self.model.encode(texts, show_progress_bar=False)
 
-        # Step 4: Optionally reduce dimensionality
+        # Optionally reduce dimensions
         if self.n_components is not None:
             embeddings = embeddings[:, : self.n_components]
 
-        # Step 5: Create DataFrame for embedding columns
+        # Build embedding DataFrame with aligned index
         emb_cols = [f"embedding_{i}" for i in range(embeddings.shape[1])]
         emb_df = pd.DataFrame(embeddings, columns=emb_cols, index=X.index)
+
+        # Drop original text column and concatenate embeddings
+        X.drop(columns=[self.text_clean], inplace=True)
         return pd.concat([X, emb_df], axis=1)
 
 
@@ -246,7 +256,9 @@ class MITYelpData(BaseEstimator, TransformerMixin):
         self.transformers: list[BaseEstimator] = [
             DuplicateRemoverTransformer(),
             TextCleanerTransformer(text=self.text_column),
-            CategoryStatsTransformer(group_col=self.group_col, value_col=self.value_col),
+            CategoryStatsTransformer(
+                group_col=self.group_col, value_col=self.value_col
+            ),
             TextEmbeddingTransformer(
                 text_clean=f"{self.text_column}_clean",
                 model_name=self.embedding_model,
@@ -254,30 +266,17 @@ class MITYelpData(BaseEstimator, TransformerMixin):
             ),
         ]
 
-    def fit(self, X: pd.DataFrame) -> "MITYelpData":
+    def fit(self, X: Any | None = None) -> "MITYelpData":
         """
-        Fit each transformer in sequence.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): Input DataFrame.
+            X: Ignored.
 
         Returns:
             MITYelpData: self
         """
-        for transformer in self.transformers:
-            transformer.fit(X)
         return self
-
-    def _save_if_needed(self, df: pd.DataFrame) -> None:
-        """
-        Save the transformed DataFrame to parquet if output path is specified.
-
-        Args:
-            df (pd.DataFrame): DataFrame to save.
-        """
-        if self.output_path:
-            logger.info(f"Saving MIT-transformed data to {self.output_path}")
-            df.to_parquet(self.output_path, index=False)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -296,7 +295,7 @@ class MITYelpData(BaseEstimator, TransformerMixin):
             logger.debug("Applying transformer: {}", transformer.__class__.__name__)
             X_transformed = transformer.transform(X_transformed)
 
-        self._save_if_needed(X_transformed)
+        save_if_needed(X_transformed, self.output_path)
         logger.info("MIT transformation complete")
         return X_transformed
 

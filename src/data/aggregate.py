@@ -7,6 +7,8 @@ import pandas as pd
 from loguru import logger
 from sklearn.base import BaseEstimator, TransformerMixin
 
+from src.utils.io_utils import save_if_needed
+
 
 class EliteAggregateTransformer(BaseEstimator, TransformerMixin):
     """
@@ -21,12 +23,12 @@ class EliteAggregateTransformer(BaseEstimator, TransformerMixin):
         self.elite = elite
         self.elite_count = elite_count
 
-    def fit(self, X: pd.DataFrame) -> "EliteAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "EliteAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             EliteAggregateTransformer: self
@@ -46,9 +48,11 @@ class EliteAggregateTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
 
         # Step 1: fill nulls and split by comma
+        logger.info("Cleaning elite years")
         elite_split = X[self.elite].fillna("").str.split(",")
 
         # Step 2: standardize each year format (e.g. '12' -> '2012')
+        logger.info("Standardizing elite years")
         elite_clean = elite_split.apply(
             lambda lst: sorted(
                 {"20" + y if len(y) == 2 and y.isdigit() else y.strip() for y in lst}
@@ -56,9 +60,11 @@ class EliteAggregateTransformer(BaseEstimator, TransformerMixin):
         )
 
         # Step 3: join years into a single string
+        logger.info("Joining elite years")
         X[self.elite] = elite_clean.str.join(",")
 
         # Step 4: count how many years each user has
+        logger.info("Counting elite years")
         X[self.elite_count] = elite_clean.str.len().astype("int32")
 
         return X
@@ -73,17 +79,16 @@ class FrequencyEncodeAggregateTransformer(BaseEstimator, TransformerMixin):
         self.frequency_encode = frequency_encode
         self.freq_maps: dict[str, pd.Series] = {}
 
-    def fit(self, X: pd.DataFrame) -> "FrequencyEncodeAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "FrequencyEncodeAggregateTransformer":
         """
-        Calculate how often each category appears (frequency).
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
+
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             FrequencyEncodeAggregateTransformer: self
         """
-        for col in self.frequency_encode:
-            self.freq_maps[col] = X[col].value_counts(normalize=True)
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -97,11 +102,10 @@ class FrequencyEncodeAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with frequency-encoded columns.
         """
         X = X.copy()
-
-        # Step: map each value to its frequency using the fitted dictionary
+        logger.info("Frequency encoding categorical columns")
         for col in self.frequency_encode:
-            X[f"{col}_freq"] = X[col].map(self.freq_maps[col]).astype("float64")
-
+            freq_map = X[col].value_counts(normalize=True)
+            X[f"{col}_freq"] = X[col].map(freq_map).astype("float64")
         return X
 
 
@@ -113,12 +117,12 @@ class BinaryFlagAggregateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, binary_flag: list[str]) -> None:
         self.binary_flag = binary_flag
 
-    def fit(self, X: pd.DataFrame) -> "BinaryFlagAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "BinaryFlagAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             BinaryFlagAggregateTransformer: self
@@ -136,6 +140,7 @@ class BinaryFlagAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with binary flags.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Creating binary flags for numeric columns")
         X = X.copy()
         for col in self.binary_flag:
             # Step 2: Create binary flag column
@@ -152,12 +157,12 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
         self.qcut_level = qcut_level
         self.labels = labels
 
-    def fit(self, X: pd.DataFrame) -> "QCutLevelAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "QCutLevelAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             QCutLevelAggregateTransformer: self
@@ -176,12 +181,13 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with quartile levels.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Binning numeric columns into quartile levels")
         X = X.copy()
         for col in self.qcut_level:
             # Step 2: Create new column with quartile level
-            X[f"{col}_level"] = pd.qcut(X[col], q=4, labels=self.labels, duplicates="drop").astype(
-                "int32"
-            )
+            X[f"{col}_level"] = pd.qcut(
+                X[col], q=4, labels=self.labels, duplicates="drop"
+            ).astype("int32")
         return X
 
 
@@ -195,17 +201,16 @@ class FansLevelAggregateTransformer(BaseEstimator, TransformerMixin):
         self.fans = fans
         self.p90: float = 0.0
 
-    def fit(self, X: pd.DataFrame) -> "FansLevelAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "FansLevelAggregateTransformer":
         """
-        Calculate 90th percentile for fans > 0.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             FansLevelAggregateTransformer: self
         """
-        self.p90 = X[self.fans][X[self.fans] > 0].quantile(0.90)
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -220,11 +225,16 @@ class FansLevelAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with fan levels.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Transforming fans column into levels")
         X = X.copy()
+
         # Step 2: Define logic using np.select for speed
-        conditions = [X[self.fans] == 0, X[self.fans] <= self.p90]
+        p90 = X[self.fans][X[self.fans] > 0].quantile(0.90)
+        conditions = [X[self.fans] == 0, X[self.fans] <= p90]
         choices = [0, 1]
-        X[f"{self.fans}_level"] = np.select(conditions, choices, default=2).astype("int32")
+        X[f"{self.fans}_level"] = np.select(conditions, choices, default=2).astype(
+            "int32"
+        )
         return X
 
 
@@ -237,12 +247,12 @@ class TextLengthAggregateTransformer(BaseEstimator, TransformerMixin):
         self.text = text
         self.text_length = text_length
 
-    def fit(self, X: pd.DataFrame) -> "TextLengthAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "TextLengthAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             TextLengthAggregateTransformer: self
@@ -260,6 +270,7 @@ class TextLengthAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with text length.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Calculating text length")
         X = X.copy()
         # Step 2: Count characters in text
         X[self.text_length] = X[self.text].str.len().fillna(0).astype("int64")
@@ -274,12 +285,12 @@ class WordCountAggregateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, text: str) -> None:
         self.text = text
 
-    def fit(self, X: pd.DataFrame) -> "WordCountAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "WordCountAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             WordCountAggregateTransformer: self
@@ -297,6 +308,7 @@ class WordCountAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with word count.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Counting words in text")
         X = X.copy()
         # Step 2: Count number of words in text
         X["word_count"] = X[self.text].fillna("").str.split().str.len().astype("int32")
@@ -311,11 +323,12 @@ class ExclamationFlagAggregateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, text: str) -> None:
         self.text = text
 
-    def fit(self, X: pd.DataFrame) -> "ExclamationFlagAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "ExclamationFlagAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
+
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             ExclamationFlagAggregateTransformer: self
@@ -333,6 +346,7 @@ class ExclamationFlagAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with exclamation flag.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Checking for exclamation marks in text")
         X = X.copy()
         # Step 2: Flag rows where text contains '!' or '¡'
         X["has_exclamation"] = (
@@ -356,12 +370,12 @@ class CategoryGroupAggregateTransformer(BaseEstimator, TransformerMixin):
         # Compile regex patterns for speed
         self.compiled_patterns = {k: re.compile(v) for k, v in self.patterns.items()}
 
-    def fit(self, X: pd.DataFrame) -> "CategoryGroupAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "CategoryGroupAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             CategoryGroupAggregateTransformer: self
@@ -379,6 +393,7 @@ class CategoryGroupAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with main category group.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Categorizing main category group")
         X = X.copy()
 
         # Step 2: Apply regex matching to assign category group
@@ -392,7 +407,9 @@ class CategoryGroupAggregateTransformer(BaseEstimator, TransformerMixin):
             return "other"
 
         # Step 3: Apply categorization function to each row
-        X["main_category_group"] = X[self.categories].apply(categorize).astype("category")
+        X["main_category_group"] = (
+            X[self.categories].apply(categorize).astype("category")
+        )
         return X
 
 
@@ -404,12 +421,12 @@ class CategoryCountAggregateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, categories: str) -> None:
         self.categories = categories
 
-    def fit(self, X: pd.DataFrame) -> "CategoryCountAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "CategoryCountAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             CategoryCountAggregateTransformer: self
@@ -427,9 +444,12 @@ class CategoryCountAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with category count.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Counting categories for each business")
         X = X.copy()
         # Step 2: Count number of elements in the category list
-        X["category_count"] = X[self.categories].fillna("").str.split(",").str.len().astype("int32")
+        X["category_count"] = (
+            X[self.categories].fillna("").str.split(",").str.len().astype("int32")
+        )
         return X
 
 
@@ -441,12 +461,12 @@ class DateAggregateTransformer(BaseEstimator, TransformerMixin):
     def __init__(self, date: str) -> None:
         self.date = date
 
-    def fit(self, X: pd.DataFrame) -> "DateAggregateTransformer":
+    def fit(self, X: Any | None = None) -> "DateAggregateTransformer":
         """
-        No fitting needed. Return self.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             DateAggregateTransformer: self
@@ -464,27 +484,35 @@ class DateAggregateTransformer(BaseEstimator, TransformerMixin):
             pd.DataFrame: Transformed DataFrame with date features.
         """
         # Step 1: copy the DataFrame to avoid modifying the original
+        logger.info("Extracting date features")
         X = X.copy()
 
         # Step 2: convert to datetime
+        logger.info("Converting date column to datetime")
         X[self.date] = pd.to_datetime(X[self.date], errors="coerce")
 
         # Step 3: extract year
+        logger.info("Extracting year from date")
         X["review_year"] = X[self.date].dt.year.astype("category")
 
         # Step 4: extract month
+        logger.info("Extracting month from date")
         X["review_month"] = X[self.date].dt.month.astype("category")
 
         # Step 5: extract day of week (0 = Monday, 6 = Sunday)
+        logger.info("Extracting day of week from date")
         X["review_dayofweek"] = X[self.date].dt.dayofweek
 
         # Step 6: create weekend flag
+        logger.info("Creating weekend flag")
         X["is_weekend"] = (X["review_dayofweek"] >= 5).astype("bool")
 
         # Step 7: re-cast day of week as category
+        logger.info("Re-casting day of week as category")
         X["review_dayofweek"] = X["review_dayofweek"].astype("category")
 
         # Step 8: extract quarter
+        logger.info("Extracting quarter from date")
         X["review_quarter"] = X[self.date].dt.quarter.astype("category")
 
         return X
@@ -543,7 +571,9 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
             BinaryFlagAggregateTransformer(binary_flag=self.binary_flag),
             QCutLevelAggregateTransformer(qcut_level=self.qcut_level),
             FansLevelAggregateTransformer(fans=self.fans),
-            TextLengthAggregateTransformer(text=self.text, text_length=self.text_length),
+            TextLengthAggregateTransformer(
+                text=self.text, text_length=self.text_length
+            ),
             WordCountAggregateTransformer(text=self.text),
             ExclamationFlagAggregateTransformer(text=self.text),
             CategoryGroupAggregateTransformer(categories=self.categories),
@@ -551,34 +581,17 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
             DateAggregateTransformer(date=self.date),
         ]
 
-    def fit(self, X: pd.DataFrame) -> "AggregateYelpData":
+    def fit(self, X: Any | None = None) -> "AggregateYelpData":
         """
-        Fit each transformer in sequence.
+        Fit method for compatibility with scikit-learn pipelines. Does nothing.
 
         Args:
-            X (pd.DataFrame): DataFrame to fit.
+            X: Ignored.
 
         Returns:
             AggregateYelpData: self
-
         """
-        for transformer in self.transformers:
-            transformer.fit(X)
         return self
-
-    def _save_if_needed(self, df: pd.DataFrame) -> None:
-        """
-        Save DataFrame to parquet if output path is specified.
-
-        Args:
-            df (pd.DataFrame): DataFrame to save.
-
-        Returns:
-            None
-        """
-        if self.output_path:
-            logger.info(f"Saving validated data to {self.output_path}")
-            df.to_parquet(self.output_path, index=False)
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         """
@@ -598,9 +611,10 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
         for transformer in self.transformers:
             X_transformed = transformer.transform(X_transformed)
             logger.debug("Applying transformer: {}", transformer.__class__.__name__)
+        logger.info("All transformers applied successfully")
 
         # Step 3: Save the transformed DataFrame if output path is specified
-        self._save_if_needed(X_transformed)
+        save_if_needed(X_transformed, self.output_path)
         logger.info("Data transformation complete")
         return X_transformed
 

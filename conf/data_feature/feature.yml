@@ -1,0 +1,119 @@
+### Data extract configuration
+paths:
+  user: data/01_raw/yelp_academic_dataset_user.json
+  review: data/01_raw/yelp_academic_dataset_review.json
+  business: data/01_raw/yelp_academic_dataset_business.json
+
+extract_output_path_train: data/01_raw/review_user_business_extract.parquet
+extract_output_path_infer: data/09_inference/review_user_business_infer.parquet
+
+data_params:
+  chunksize: 100000
+  sample_size: 1300000
+  train_ratio: 0.8
+
+data_columns:
+  review_count: review_count
+  text: text
+  useful: useful
+  date: date
+  user_id: user_id
+  business_id: business_id
+
+
+### Data validation configuration
+validation_drop_columns:
+  - user_id
+  - business_id
+  - name
+  - yelping_since
+  - name_user
+  - latitude
+  - friends
+  - postal_code
+  - longitude
+  - compliment_hot
+  - compliment_more
+  - compliment_profile
+  - compliment_cute
+  - compliment_list
+  - compliment_note
+  - compliment_plain
+  - compliment_cool
+  - compliment_funny
+  - compliment_writer
+  - compliment_photos
+  - attributes
+  - hours
+  - review_count_user
+
+validation:
+  cols_drop_na: [useful_user, funny_user, cool_user, fans]
+  cols_categoric: [stars, elite, city, state]
+  cols_numeric_float: [stars_user, average_stars]
+  cols_numeric_int: [useful, funny, cool, review_count, useful_user, funny_user, cool_user, fans]
+  cols_boolean: [is_open]
+  cols_string: [review_id, text, address, categories]
+  col_date: date
+
+validate_output_path: data/02_intermediate/review_user_business_validate.parquet
+
+
+### Data aggregate configuration
+aggregate_categorical:
+  elite: elite
+  elite_count: elite_count
+  frequency_encode: [city, state]
+
+aggregate_numerical:
+  binary_flag: [useful, funny, cool]
+  qcut_level: [review_count, useful_user, funny_user, cool_user]
+  fans: fans
+
+aggregate_string:
+  text_length: text_length
+  text: text
+  categories: categories
+
+aggregate_date:
+  date: date
+
+aggregate_output_path: data/03_primary/review_user_business_aggregate.parquet
+
+
+### Data compress configuration
+compress_categorical:
+  - city
+  - state
+  - elite
+
+compress_numerical:
+  - useful_user
+  - funny_user
+  - cool_user
+  - fans
+  - average_stars
+  - stars_user
+
+compress_string:
+  - categories
+  - review_id
+  - address
+  - name_business
+
+compress_date:
+  - date
+
+compress_output_path: data/03_primary/review_user_business_compress.parquet
+
+
+### Data mit configuration
+mit:
+  text_column: text
+  group_col: main_category_group
+  value_col: text_length
+  embedding_model: sentence-transformers/paraphrase-albert-small-v2
+  n_components: 50
+
+mit_output_path: data/04_feature/review_user_business_mit.parquet
+mit_output_transform_path: data/08_reporting/feature_pipeline.html

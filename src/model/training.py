@@ -48,8 +48,9 @@ class TrainModelTransformer(BaseEstimator, TransformerMixin):
         model_name = path.read_text().strip()
         try:
             return classifier_registry[model_name]
-        except KeyError:
-            raise ValueError(f"Model '{model_name}' not found in classifier_registry.")
+        except KeyError as err:
+            msg = f"Model '{model_name}' not found in classifier_registry."
+            raise ValueError(msg) from err
 
     @staticmethod
     def load_model_parameters(params_path: str | Path) -> Any:

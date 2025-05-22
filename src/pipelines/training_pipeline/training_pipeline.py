@@ -20,12 +20,12 @@ training_config = OmegaConf.load(BASE_DIR / "conf/model_training/training.yml")
 
 
 # Build pipeline
-def run_training_pipeline() -> pd.DataFrame:
+def run_training_pipeline() -> None:
     """
     Run the training pipeline and return the final DataFrame.
 
     Returns:
-        pd.DataFrame: Fully processed features after all FTI steps.
+        None
     """
     logger.info("Running training pipeline...")
 
@@ -104,7 +104,7 @@ def run_training_pipeline() -> pd.DataFrame:
     save_pipeline_if_needed(pipeline, training_config.training_output_pipeline_path)
 
     # Step 9: Save the pipeline view
-    with open(BASE_DIR / training_config.output_transform_path, "w") as f:
+    with open(BASE_DIR / training_config.training_output_transform_path, "w") as f:
         f.write(estimator_html_repr(pipeline))
 
     # Step 10: Validator

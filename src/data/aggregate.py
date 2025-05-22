@@ -53,9 +53,15 @@ class EliteAggregateTransformer(BaseEstimator, TransformerMixin):
 
         # Step 2: standardize each year format (e.g. '12' -> '2012')
         logger.info("Standardizing elite years")
+        YEAR_SHORT_LENGTH = 2
         elite_clean = elite_split.apply(
             lambda lst: sorted(
-                {"20" + y if len(y) == 2 and y.isdigit() else y.strip() for y in lst}
+                {
+                    "20" + y
+                    if len(y) == YEAR_SHORT_LENGTH and y.isdigit()
+                    else y.strip()
+                    for y in lst
+                }
             )
         )
 
@@ -153,7 +159,9 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
     Bin numeric columns into quartile levels using qcut.
     """
 
-    def __init__(self, qcut_level: list[str], labels: list[int] = [0, 1, 2, 3]) -> None:
+    def __init__(self, qcut_level: list[str], labels: list[int] | None = None):
+        if labels is None:
+            labels = [0, 1, 2, 3]
         self.qcut_level = qcut_level
         self.labels = labels
 
@@ -175,16 +183,13 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
 
         Args:
             X (pd.DataFrame): DataFrame to transform.
-            y (Optional[pd.Series]): Target variable (not used).
 
         Returns:
             pd.DataFrame: Transformed DataFrame with quartile levels.
         """
-        # Step 1: copy the DataFrame to avoid modifying the original
         logger.info("Binning numeric columns into quartile levels")
         X = X.copy()
-        for col in self.qcut_level:
-            # Step 2: Create new column with quartile level
+        for col in self.columns:
             X[f"{col}_level"] = pd.qcut(
                 X[col], q=4, labels=self.labels, duplicates="drop"
             ).astype("int32")
@@ -505,7 +510,8 @@ class DateAggregateTransformer(BaseEstimator, TransformerMixin):
 
         # Step 6: create weekend flag
         logger.info("Creating weekend flag")
-        X["is_weekend"] = (X["review_dayofweek"] >= 5).astype("bool")
+        WEEKEND_START_DAY = 5
+        X["is_weekend"] = (X["review_dayofweek"] >= WEEKEND_START_DAY).astype("bool")
 
         # Step 7: re-cast day of week as category
         logger.info("Re-casting day of week as category")

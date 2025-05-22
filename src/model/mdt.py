@@ -35,9 +35,11 @@ def transform_stars_to_target(df: pd.DataFrame, stars_column: str) -> pd.DataFra
     df = df.copy()
 
     def classify(stars: float) -> int:
-        if stars <= 2:
+        NEGATIVE_THRESHOLD = 2
+        NEUTRAL_VALUE = 3
+        if stars <= NEGATIVE_THRESHOLD:
             return 0
-        if stars == 3:
+        if stars == NEUTRAL_VALUE:
             return 1
         return 2
 
@@ -152,8 +154,9 @@ class EncodingTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
 
         # Step 2: check if the encoder has been fitted
+        ENCODER_NOT_FITTED_MSG = "The encoder has not been fitted. Run fit() first."
         if self.ohe is None:
-            raise ValueError("The encoder has not been fitted. Run fit() first.")
+            raise ValueError(ENCODER_NOT_FITTED_MSG)
 
         # Step 3: apply one-hot encoding to categorical columns
         cat_encoded = self.ohe.transform(X[self.cat_cols])
@@ -216,7 +219,8 @@ class GroupMeanImputer(BaseEstimator, TransformerMixin):
         X = X.copy().reset_index(drop=True)
         y = self.y_
         if y is None:
-            raise ValueError("Target variable y_ has not been set. Run fit() first.")
+            ENCODER_NOT_FITTED_MSG = "The encoder has not been fitted. Run fit() first."
+            raise ValueError(ENCODER_NOT_FITTED_MSG)
         for col in self.columns_imputer:
             means = self.group_means_[col]
             X[col] = X[col].where(~X[col].isna(), y.map(means))
@@ -353,7 +357,8 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
         logger.info("Transforming data with DimensionalityReducer.")
 
         if self.pipeline is None or self.selected_columns_ is None:
-            raise RuntimeError("Pipeline has not been fitted.")
+            PIPELINE_NOT_FITTED_MSG = "Pipeline has not been fitted."
+            raise RuntimeError(PIPELINE_NOT_FITTED_MSG)
 
         # Apply the pipeline to transform the data
         logger.info("Transforming data with the fitted pipeline.")

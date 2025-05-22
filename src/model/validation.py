@@ -41,11 +41,14 @@ def evaluate_and_save_model(
 
         logger.info(f"Evaluating {metric} with threshold {threshold}...")
         if score is None:
-            raise ValueError(f"[ERROR] Metric {metric} not found in report.")
+            ERROR_MSG = f"Metric {metric} not found in report."
+            raise ValueError(ERROR_MSG)
         if score < threshold:
+            FAIL_MSG = "[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
             raise ValueError(
-                f"[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
+                FAIL_MSG.format(metric=metric, score=score, threshold=threshold)
             )
+
         logger.info(f"[PASS] {metric} = {score:.4f} ≥ threshold = {threshold:.4f}")
 
     joblib.dump(model, output_path)

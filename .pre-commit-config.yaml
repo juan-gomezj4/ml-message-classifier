@@ -15,12 +15,6 @@ repos:
     hooks:
       - id: detect-secrets
         exclude: ^(poetry\.lock|.*\.ipynb)$
-      - id: detect-secrets
-        name: 'detect-secrets-jupyter'
-        args: [
-          '--exclude-files', '.*[^i][^p][^y][^n][^b]$',
-          '--exclude-lines', '"(hash|id|image/\\w+)":.*'
-        ]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.10

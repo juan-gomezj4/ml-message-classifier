@@ -112,7 +112,7 @@ def run_feature_pipeline() -> pd.DataFrame:
 
     # Step 6: Fit and transform the pipeline
     logger.info("Fitting and transforming the pipeline...")
-    df = pipeline.fit_transform(None)
+    dataframe: pd.DataFrame = pipeline.fit_transform(None)
 
     # Step 7: Save the pipeline view
     logger.info("Saving the pipeline view...")
@@ -120,4 +120,4 @@ def run_feature_pipeline() -> pd.DataFrame:
         f.write(estimator_html_repr(pipeline))
 
     logger.info("Feature pipeline completed.")
-    return df
+    return dataframe

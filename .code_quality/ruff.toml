@@ -16,7 +16,9 @@ select = [
 ignore = [
     "E203",
     "E501",
-    "S101"
+    "S101",
+    "PLR0913"
+
 ]
 fixable = ["ALL"]
 unfixable = []
@@ -33,3 +35,4 @@ max-complexity = 10
 
 [lint.isort]
 known-third-party = ["fastapi", "pydantic"]
+

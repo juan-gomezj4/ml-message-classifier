@@ -2,7 +2,7 @@
 mdt:
   stars_column: stars             # Se usa antes del pipeline para crear target
   corr_threshold: 0.9
-  importance_threshold: 0.4
+  importance_threshold: 0.5
   scoring: f1_weighted
 
 

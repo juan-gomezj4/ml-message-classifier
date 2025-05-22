@@ -6,11 +6,11 @@ from omegaconf import OmegaConf
 from sklearn.pipeline import Pipeline
 from sklearn.utils import estimator_html_repr
 
+from src.data.extract import ExtractYelpData
+from src.data.validate import ValidateYelpData
 from src.data.aggregate import AggregateYelpData
 from src.data.compress import CompressYelpData
-from src.data.extract import ExtractYelpData
 from src.data.mit import MITYelpData
-from src.data.validate import ValidateYelpData
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 config = OmegaConf.load(BASE_DIR / "conf/data_feature/feature.yml")

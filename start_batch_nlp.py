@@ -4,18 +4,18 @@ from typing import Callable
 
 import pandas as pd
 from loguru import logger
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
+import joblib
 
 from src.model.mdt import transform_stars_to_target
 from src.pipelines.feature_pipeline.feature_pipeline import run_feature_pipeline
 from src.pipelines.training_pipeline.training_pipeline import run_training_pipeline
+from src.pipelines.inference_pipeline.inference_pipeline import run_inference_pipeline
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parents[0]
-CONFIG = OmegaConf.load(BASE_DIR / "conf/data_feature/feature.yml")
-
-# Config paths
-FEATURE_OUTPUT_PATH = BASE_DIR / CONFIG.mit_output_path
+config_feature = OmegaConf.load(BASE_DIR / "conf/data_feature/feature.yml")
+config_inference = OmegaConf.load(BASE_DIR / "conf/model_inference/inference.yml")
 
 
 def run_training_stage() -> None:
@@ -23,13 +23,25 @@ def run_training_stage() -> None:
     Run the training pipeline: create target variable and train the model.
     """
     logger.info("📥 Loading features...")
-    df_feature = pd.read_parquet(FEATURE_OUTPUT_PATH)
+    df_feature = pd.read_parquet(config_feature.mit_output_path)
 
     logger.info("🎯 Generating target variable...")
     df = transform_stars_to_target(df_feature, "stars")
 
     logger.info("🏃 Running training pipeline...")
     run_training_pipeline(data=df)
+
+
+def run_inference_stage() -> None:
+    """
+    Run the inference pipeline: load data and model, apply transformations, and predict.
+    """
+    logger.info("📥 Loading data and model")
+    df = pd.read_parquet(config_inference.paths.new_data)
+    pipeline = joblib.load(config_inference.paths.best_model)
+
+    logger.info("🏃 Running inference pipeline...")
+    run_inference_pipeline(data=df, model=pipeline)
 
 
 def main(stage: str) -> None:
@@ -43,11 +55,11 @@ def main(stage: str) -> None:
     STAGE_FUNCTIONS: dict[str, list[Callable[[], None]]] = {
         "F": [run_feature_pipeline],
         "T": [run_training_stage],
-        "I": [lambda: logger.warning("🔧 Stage I (inference) not yet implemented.")],
+        "I": [run_inference_stage],
         "FTI": [
             run_feature_pipeline,
             run_training_stage,
-            lambda: logger.warning("🔧 Stage I (inference) not yet implemented."),
+            run_inference_stage,
         ],
     }
 

@@ -1,0 +1,7 @@
+### Data extract configuration
+paths:
+  new_data: data/09_inference/review_user_business_infer.parquet
+  best_model: models/final_model_v1.pkl
+  prediction: data/09_inference/infer_prediction.parquet
+
+review_id: review_id

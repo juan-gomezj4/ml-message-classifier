@@ -44,7 +44,7 @@ Pasos implementados:
 - `create new features`: variables derivadas.
 - `embedding`: transformación del texto en vectores numéricos.
 
-📎 Visualización: [`html_reports/feature_pipeline.html`](./html_reports/feature_pipeline.html)
+[📎 Ver Feature Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/feature_pipeline.html)
 
 ---
 
@@ -60,7 +60,7 @@ Pasos implementados:
 - `training`: entrenamiento del modelo.
 - `validate`: evaluación con métricas definidas.
 
-📎 Visualización: [`html_reports/training_pipeline.html`](./html_reports/training_pipeline.html)
+[📎 Ver Training Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/training_pipeline.html)
 
 ---
 
@@ -73,7 +73,7 @@ Pasos implementados:
 - Carga el `Pipeline Trainer` con los artefactos del modelo.
 - Aplica `predict` y entrega resultados listos para gestión operativa.
 
-📎 Visualización: [`html_reports/inference_pipeline.html`](./html_reports/inference_pipeline.html)
+
 
 ---
 

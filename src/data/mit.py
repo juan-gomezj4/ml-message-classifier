@@ -1,12 +1,9 @@
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
 from loguru import logger
 from sentence_transformers import SentenceTransformer
 from sklearn.base import BaseEstimator, TransformerMixin
-
-from src.utils.io_utils import save_if_needed
 
 
 class DuplicateRemoverTransformer(BaseEstimator, TransformerMixin):
@@ -18,27 +15,9 @@ class DuplicateRemoverTransformer(BaseEstimator, TransformerMixin):
         pass
 
     def fit(self, X: Any | None = None) -> "DuplicateRemoverTransformer":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-
-        Returns:
-            DuplicateRemoverTransformer: self
-        """
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Remove duplicate rows from the DataFrame.
-
-        Args:
-            X (pd.DataFrame): DataFrame to transform.
-
-        Returns:
-            pd.DataFrame: DataFrame with duplicate rows removed.
-        """
         logger.info("Removing duplicate rows from the DataFrame.")
         return X.drop_duplicates()
 
@@ -52,27 +31,9 @@ class TextCleanerTransformer(BaseEstimator, TransformerMixin):
         self.text = text
 
     def fit(self, X: Any | None = None) -> "TextCleanerTransformer":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-
-        Returns:
-            TextCleanerTransformer: self
-        """
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Clean text by lowercasing, removing punctuation and extra spaces.
-
-        Args:
-            X (pd.DataFrame): DataFrame to transform.
-
-        Returns:
-            pd.DataFrame: DataFrame with cleaned text.
-        """
         # Step 1: copy the DataFrame
         X = X.copy()
 
@@ -101,31 +62,13 @@ class CategoryStatsTransformer(BaseEstimator, TransformerMixin):
         self.value_col = value_col
 
     def fit(self, X: Any | None = None) -> "CategoryStatsTransformer":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-
-        Returns:
-            CategoryStatsTransformer: self
-        """
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform the DataFrame by adding mean, std, and relative value columns.
-
-        Args:
-            X (pd.DataFrame): DataFrame to transform.
-
-        Returns:
-            pd.DataFrame: DataFrame with added mean, std, and relative value columns.
-        """
-        # Step 1: copy the DataFrame
         logger.info(
             "Transforming the DataFrame by adding mean, std, and relative value columns."
         )
+        # Step 1: copy the DataFrame
         X = X.copy()
 
         # Step 2: Calculate mean and std for the specified group and value columns
@@ -158,14 +101,6 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
         model_name: str,
         n_components: int | None = None,
     ) -> None:
-        """
-        Initialize the transformer.
-
-        Args:
-            text_clean (str): Name of the column containing cleaned text.
-            model_name (str): Name of the pretrained SentenceTransformer model.
-            n_components (Optional[int]): Number of dimensions to retain (if reducing).
-        """
         self.text_clean = text_clean
         self.model_name = model_name
         self.n_components = n_components
@@ -174,55 +109,35 @@ class TextEmbeddingTransformer(BaseEstimator, TransformerMixin):
     def fit(
         self, X: Any | None = None, y: Any | None = None
     ) -> "TextEmbeddingTransformer":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-            y: Ignored.
-
-        Returns:
-            TextEmbeddingTransformer: self
-        """
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform the DataFrame by generating text embeddings.
-
-        Args:
-            X (pd.DataFrame): DataFrame to transform.
-
-        Returns:
-            pd.DataFrame: DataFrame with added embedding columns.
-        """
         logger.info("Transforming the DataFrame by generating text embeddings.")
-
-        # Copy to avoid modifying the original DataFrame
+        # Step 1: copy DataFrame
         X = X.copy()
 
-        # Get list of texts, replacing NaNs with empty strings
+        # Step 2: Get list of texts, replacing NaNs with empty strings
         texts = X[self.text_clean].fillna("").astype(str).tolist()
 
-        # Encode texts into embeddings
+        # Step 3: Encode texts into embeddings
         embeddings = self.model.encode(texts, show_progress_bar=False)
 
-        # Optionally reduce dimensions
+        # Step 4: Optionally reduce dimensions
         if self.n_components is not None:
             embeddings = embeddings[:, : self.n_components]
 
-        # Build embedding DataFrame with aligned index
+        # Step 5: Build embedding DataFrame with aligned index
         emb_cols = [f"embedding_{i}" for i in range(embeddings.shape[1])]
         emb_df = pd.DataFrame(embeddings, columns=emb_cols, index=X.index)
 
-        # Drop original text column and concatenate embeddings
+        # Step 6: Drop original text column and concatenate embeddings
         X.drop(columns=[self.text_clean], inplace=True)
         return pd.concat([X, emb_df], axis=1)
 
 
 class MITYelpData(BaseEstimator, TransformerMixin):
     """
-    Apply model-independent transformations to Yelp data.
+    Applies a sequence of model-independent transformations to Yelp data.
     """
 
     def __init__(
@@ -232,27 +147,13 @@ class MITYelpData(BaseEstimator, TransformerMixin):
         value_col: str,
         embedding_model: str,
         n_components: int | None = None,
-        output_path: str | Path | None = None,
     ) -> None:
-        """
-        Initialize MITYelpData with transformation parameters.
-
-        Args:
-            text_column (str): Column name of the raw text.
-            group_col (str): Column name to group by (e.g., category).
-            value_col (str): Column name with numeric values (e.g., text length).
-            embedding_model (str): Name of the model to use for embeddings.
-            n_components (Optional[int]): Number of embedding components to keep.
-            output_path (Optional[Union[str, Path]]): Optional path to save transformed data.
-        """
         self.text_column = text_column
         self.group_col = group_col
         self.value_col = value_col
         self.embedding_model = embedding_model
         self.n_components = n_components
-        self.output_path = Path(output_path) if output_path else None
 
-        # List of transformers to apply in sequence
         self.transformers: list[BaseEstimator] = [
             DuplicateRemoverTransformer(),
             TextCleanerTransformer(text=self.text_column),
@@ -266,46 +167,20 @@ class MITYelpData(BaseEstimator, TransformerMixin):
             ),
         ]
 
-    def fit(self, X: Any | None = None) -> "MITYelpData":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-
-        Returns:
-            MITYelpData: self
-        """
+    def fit(self, X: Any = None, y: Any = None) -> "MITYelpData":
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Apply all MIT transformers to the input DataFrame.
-
-        Args:
-            X (pd.DataFrame): Input DataFrame.
-
-        Returns:
-            pd.DataFrame: Transformed DataFrame.
-        """
-        logger.info("Applying MIT transformations")
+        logger.info("Starting model-independent transformations (MIT)")
+        # Step 1: Check if transformers are fitted
         X_transformed = X.copy()
-
         for transformer in self.transformers:
-            logger.debug("Applying transformer: {}", transformer.__class__.__name__)
+            if not hasattr(transformer, "transform"):
+                raise TypeError(
+                    f"{transformer.__class__.__name__} must implement .transform()"
+                )
+            logger.debug(f"Applying: {transformer.__class__.__name__}")
             X_transformed = transformer.transform(X_transformed)
 
-        save_if_needed(X_transformed, self.output_path)
-        logger.info("MIT transformation complete")
+        logger.success("MIT transformations completed.")
         return X_transformed
-
-    def set_output(self, *, transform: Any | None = None) -> "MITYelpData":
-        """
-        Method for compatibility with scikit-learn's set_output API.
-        Args:
-            transform (Optional[Any]): Ignored.
-
-        Returns:
-            MITYelpData: self
-        """
-        return self

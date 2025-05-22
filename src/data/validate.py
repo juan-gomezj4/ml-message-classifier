@@ -1,10 +1,10 @@
-from pathlib import Path
 from typing import Any
 
 import pandas as pd
 from loguru import logger
 from pandas.api.types import (
     is_bool_dtype,
+    is_datetime64_dtype,
     is_float_dtype,
     is_integer_dtype,
     is_object_dtype,
@@ -12,13 +12,10 @@ from pandas.api.types import (
 )
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from src.utils.io_utils import save_if_needed
-
 
 class ValidateYelpData(BaseEstimator, TransformerMixin):
     """
-    Transformer for validating Yelp data structure and types.
-    Uses simple type verification instead of schema validation.
+    Transformer to clean and validate column types for Yelp dataset.
     """
 
     def __init__(
@@ -31,21 +28,7 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         cols_boolean: list[str],
         cols_string: list[str],
         col_date: str,
-        output_path: str | Path | None = None,
     ) -> None:
-        """
-        Initialize ValidateYelpData.
-        Args:
-            drop_columns: List of columns to drop.
-            drop_columns_na: List of columns to drop if they contain NA values.
-            cols_categoric: List of categorical columns.
-            cols_numeric_float: List of float columns.
-            cols_numeric_int: List of integer columns.
-            cols_boolean: List of boolean columns.
-            cols_string: List of string columns.
-            col_date: Date column.
-            output_path: Optional output path for saving the validated data.
-        """
         self.drop_columns = drop_columns
         self.drop_columns_na = drop_columns_na
         self.cols_categoric = cols_categoric
@@ -54,123 +37,67 @@ class ValidateYelpData(BaseEstimator, TransformerMixin):
         self.cols_boolean = cols_boolean
         self.cols_string = cols_string
         self.col_date = col_date
-        self.output_path = Path(output_path) if output_path else None
 
-    def fit(self, X: Any | None = None) -> "ValidateYelpData":
-        """
-        Fit method for compatibility with scikit-learn pipelines. Does nothing.
-
-        Args:
-            X: Ignored.
-
-        Returns:
-            ValidateYelpData: self
-        """
+    def fit(self, X: Any = None, y: Any = None) -> "ValidateYelpData":
         return self
 
-    # Helper function to safely cast columns to a specified dtype
-    def _safe_cast(self, df: pd.DataFrame, cols: list[str], dtype: Any) -> pd.DataFrame:
-        """
-        Cast columns to specified dtype if they exist in the DataFrame.
-        """
-        valid_cols = [col for col in cols if col in df.columns]
-        if valid_cols:
-            logger.debug(f"Casting to {dtype}: {valid_cols}")
-            df[valid_cols] = df[valid_cols].astype(dtype)
-        return df
-
-    # Verify data types
-    def _verify_types(self, X: pd.DataFrame) -> dict[str, bool]:
-        """
-        Verify that columns have the expected types after conversion.
-
-        Args:
-            X (pd.DataFrame): DataFrame to verify.
-
-        Returns:
-            Dict[str, bool]: Dictionary of type checks with column names as keys
-            and boolean values indicating if the check passed.
-        """
-        logger.info("Verifying data types")
-        type_checks = {}
-        type_map = {
-            "categoric": (self.cols_categoric, is_string_dtype),
-            "float": (self.cols_numeric_float, is_float_dtype),
-            "int": (self.cols_numeric_int, is_integer_dtype),
-            "bool": (self.cols_boolean, is_bool_dtype),
-            "string": (
-                self.cols_string,
-                lambda col: is_string_dtype(col) or is_object_dtype(col),
-            ),
-        }
-
-        for type_name, (columns, check_fn) in type_map.items():
-            for col in filter(lambda c: c in X.columns, columns):
-                type_checks[f"{col}_is_{type_name}"] = check_fn(X[col])
-
-        # Check datetime column separately
-        if self.col_date in X.columns:
-            type_checks[f"{self.col_date}_is_datetime"] = (
-                pd.api.types.is_datetime64_dtype(X[self.col_date])
-            )
-        return type_checks
-
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
-        """
-        Transform DataFrame by dropping unnecessary columns, converting types,
-        and validating that types are correctly assigned.
+        logger.info("Validating Yelp data...")
 
-        Args:
-            X (pd.DataFrame): DataFrame to transform.
-
-        Returns:
-            pd.DataFrame: Transformed DataFrame.
-        """
-        logger.info("Starting data validation process")
-
-        # 1. Drop unnecessary columns and NA values
-        logger.info("Dropping unnecessary columns")
+        # 1. Drop columns
         X = X.drop(columns=self.drop_columns, errors="ignore")
         X = X.dropna(subset=self.drop_columns_na)
 
-        # 2. Convert columns to appropriate types
-        logger.info("Converting columns to appropriate data types")
-        X = self._safe_cast(X, self.cols_categoric, "category")
-        X = self._safe_cast(X, self.cols_numeric_float, "float")
-        X = self._safe_cast(X, self.cols_numeric_int, "int32")
-        X = self._safe_cast(X, self.cols_boolean, "bool")
-        X = self._safe_cast(X, self.cols_string, "object")
+        # 2. Convert types
+        self._safe_cast(X, self.cols_categoric, "category")
+        self._safe_cast(X, self.cols_numeric_float, "float")
+        self._safe_cast(X, self.cols_numeric_int, "int32")
+        self._safe_cast(X, self.cols_boolean, "bool")
+        self._safe_cast(X, self.cols_string, "object")
 
         if self.col_date in X.columns:
             X[self.col_date] = pd.to_datetime(X[self.col_date], errors="coerce")
         else:
-            logger.warning(f"Missing datetime column: {self.col_date}")
+            logger.warning(f"Date column '{self.col_date}' not found.")
 
-        # 3. Verify types are correctly assigned
-        logger.info("Verifying data types")
-        type_checks = self._verify_types(X)
+        # 3. Type checks
+        self._verify_types(X)
 
-        # Log any type issues
-        failed_checks = {key: val for key, val in type_checks.items() if val is False}
-        if failed_checks:
-            logger.warning(f"Type verification failed for: {failed_checks}")
-        else:
-            logger.info("All type verifications passed")
-
-        # 4. Save if needed
-        logger.info("Saving validated data if output path is provided")
-        save_if_needed(X, self.output_path)
-
-        logger.info("Data validation completed successfully")
+        logger.success("Validation completed.")
         return X
 
-    def set_output(self, *, transform: Any | None = None) -> "ValidateYelpData":
-        """
-        Method for compatibility with scikit-learn's set_output API.
-        Args:
-            transform (Optional[Any]): Ignored.
+    def _safe_cast(self, df: pd.DataFrame, cols: list[str], dtype: Any) -> None:
+        valid_cols = [c for c in cols if c in df.columns]
+        if valid_cols:
+            logger.debug(f"Casting to {dtype}: {valid_cols}")
+            df[valid_cols] = df[valid_cols].astype(dtype)
 
-        Returns:
-            ValidateYelpData: self
-        """
-        return self
+    def _verify_types(self, X: pd.DataFrame) -> None:
+        checks = {
+            **{col: is_string_dtype(X[col]) for col in self.cols_categoric if col in X},
+            **{
+                col: is_float_dtype(X[col])
+                for col in self.cols_numeric_float
+                if col in X
+            },
+            **{
+                col: is_integer_dtype(X[col])
+                for col in self.cols_numeric_int
+                if col in X
+            },
+            **{col: is_bool_dtype(X[col]) for col in self.cols_boolean if col in X},
+            **{
+                col: is_string_dtype(X[col]) or is_object_dtype(X[col])
+                for col in self.cols_string
+                if col in X
+            },
+        }
+
+        if self.col_date in X.columns:
+            checks[self.col_date] = is_datetime64_dtype(X[self.col_date])
+
+        failed = [col for col, valid in checks.items() if not valid]
+        if failed:
+            logger.warning(f"Type mismatches found in columns: {failed}")
+        else:
+            logger.info("All type checks passed.")

@@ -34,26 +34,16 @@ pre-commit_update: ## Update pre-commit hooks
 clean_env: ## Delete virtual environment
 	@[ -d .venv ] && rm -rf .venv || echo ".venv directory does not exist"
 
-####----Git----####
-switch_main: ## Switch to main branch and pull
-	git switch main
-	git pull
-
-clean_branchs: ## Delete local branches merged in origin
-	git fetch -p
-	for branch in $$(git for-each-ref --format '%(refname:short)' refs/heads/ | grep -v '^\*' | grep -v ' main$$'); do \
-		if ! git show-ref --quiet refs/remotes/origin/$$branch; then \
-			echo "Deleting local branch $$branch"; \
-			git branch -D $$branch; \
-		fi \
-	done
-
 ####----Checks----####
 check: ## Run pre-commit on all files
 	uv run pre-commit run -a
 
 lint: ## Run only Ruff
 	uv run pre-commit run ruff
+
+####----Train model from feature data----####
+train: ## Train model from feature data
+	uv run python train_model.py
 
 ####----Project----####
 help:
@@ -62,3 +52,5 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' Makefile | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help
+
+

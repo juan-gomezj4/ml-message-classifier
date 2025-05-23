@@ -1,48 +1,48 @@
 # Proyecto MLOps - Clasificación de Mensajes en Batch
 
-La solución refleja un enfoque práctico -mantenible, reproducible y escalable- para implementar sistemas de ML en producción, aplicando buenas prácticas de MLOps desde la experimentación hasta el despliegue.
+La solución refleja un enfoque práctico -mantenible, reproducible y escalable- para implementar sistemas de ML en producción, aplicando buenas prácticas de MLOps desde la experimentación hasta el despliegue
 
-El proyecto consiste en un sistema batch que automatiza la clasificación de mensajes enviados por usuarios a un canal de atención, simulados mediante reseñas del **Yelp Open Dataset**. Se diseñó una arquitectura modular basada en el enfoque **FTI (Feature - Training - Inference)**, con énfasis en mantenibilidad, reproducibilidad y escalabilidad.
+El proyecto consiste en un sistema batch que automatiza la clasificación de mensajes enviados por usuarios a un canal de atención, simulados mediante reseñas del **Yelp Open Dataset**. Se diseñó una arquitectura modular basada en el enfoque **FTI (Feature - Training - Inference)**, con énfasis en mantenibilidad, reproducibilidad y escalabilidad
 
-La implementación considera el ciclo completo: desde la ingesta de datos y procesamiento, hasta el entrenamiento, predicción y activación de reentrenamiento bajo condiciones controladas.
+La implementación considera el ciclo completo: desde la ingesta de datos y procesamiento, hasta el entrenamiento, predicción y activación de reentrenamiento bajo condiciones controladas
 
-Este repositorio contiene todo el código, configuraciones y artefactos necesarios para replicar la solución.
+Este repositorio contiene todo el código, configuraciones y artefactos necesarios para replicar la solución
 
 ## **Objetivo**
 
-El objetivo técnico fue desarrollar un sistema de clasificación de mensajes en batch, alineado con principios de MLOps y capaz de escalar hacia entornos productivos.
+El objetivo técnico fue desarrollar un sistema de clasificación de mensajes en batch, alineado con principios de MLOps y capaz de escalar hacia entornos productivos
 
-***La prioridad no estuvo en optimizar cada línea de código***, sino en definir una **arquitectura clara**, una **lógica desacoplada entre etapas** y un flujo robusto de punta a punta. Se diseñó una solución que refleja cómo se debe estructurar un sistema de ML real, más allá de un simple modelo funcional.
+***La prioridad no estuvo en optimizar cada línea de código***, sino en definir una **arquitectura clara**, una **lógica desacoplada entre etapas** y un flujo robusto de punta a punta. Se diseñó una solución que refleja cómo se debe estructurar un sistema de ML real, más allá de un simple modelo funcional
 
 El proyecto priorizó:
 
-- **Diseñar pipelines desacoplados**, compatibles con ejecución secuencial o por orquestador.
-- **Definir pasos explícitos por etapa** (extracción, validación, agregación, etc.), facilitando la trazabilidad del flujo.
-- **Aplicar validaciones automáticas** de datos y modelos con `pandera` y métricas definidas.
-- **Controlar dependencias y calidad del código** mediante herramientas como `uv`, `hydra`, `ruff`, `mypy`, `bandit`, `pre-commit`, `pytest` y `coverage.py`.
-- **Simular condiciones realistas de producción**, incluyendo detección de drift, uso de feature store y reentrenamiento automático.
+- **Diseñar pipelines desacoplados**, compatibles con ejecución secuencial o por orquestador
+- **Definir pasos explícitos por etapa** (extracción, validación, agregación, etc.), facilitando la trazabilidad del flujo
+- **Aplicar validaciones automáticas** de datos y modelos con `pandera` y métricas definidas
+- **Controlar dependencias y calidad del código** mediante herramientas como `uv`, `hydra`, `ruff`, `mypy`, `bandit`, `pre-commit`, `pytest` y `coverage.py`
+- **Simular condiciones realistas de producción**, incluyendo detección de drift, uso de feature store y reentrenamiento automático
 
-Este enfoque permitió construir un sistema sólido y extensible, listo para ser escalado o refactorizado sin comprometer su arquitectura base.
+Este enfoque permitió construir un sistema sólido y extensible, listo para ser escalado o refactorizado sin comprometer su arquitectura base
 
 ## Arquitectura del sistema
 
-La solución sigue la arquitectura FTI (Feature → Training → Inference), separando claramente la lógica de transformación, entrenamiento e inferencia. Cada etapa fue implementada como un pipeline independiente, permitiendo trazabilidad, reutilización de componentes y mantenibilidad.
+La solución sigue la arquitectura FTI (Feature → Training → Inference), separando claramente la lógica de transformación, entrenamiento e inferencia. Cada etapa fue implementada como un pipeline independiente, permitiendo trazabilidad, reutilización de componentes y mantenibilidad
 
-El flujo completo también contempla la lógica de reentrenamiento ante degradación del modelo.
+El flujo completo también contempla la lógica de reentrenamiento ante degradación del modelo
 
 ---
 
 ### 🟧 Feature Pipeline
 
-Toma los datos crudos desde Yelp y los transforma en un conjunto de features limpios, validados y listos para modelar.
+Toma los datos crudos desde Yelp y los transforma en un conjunto de features limpios, validados y listos para modelar
 
 Pasos implementados:
-- `extract`: lectura de nuevos datos.
-- `remove duplicates`: eliminación de duplicados.
-- `validate`: validación de estructura y tipos con `pandera`.
-- `clean text`: preprocesamiento básico del texto.
-- `create new features`: variables derivadas.
-- `embedding`: transformación del texto en vectores numéricos.
+- `extract`: lectura de nuevos datos
+- `remove duplicates`: eliminación de duplicados
+- `validate`: validación de estructura y tipos con `pandera`
+- `clean text`: preprocesamiento básico del texto
+- `create new features`: variables derivadas
+- `embedding`: transformación del texto en vectores numéricos
 
 [📎 Ver Feature Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/feature_pipeline.html)
 
@@ -50,15 +50,15 @@ Pasos implementados:
 
 ### 🟩 Training Pipeline
 
-Utiliza los datos procesados para generar un modelo entrenado. Mantiene consistencia entre entrenamiento y validación, asegurando que las transformaciones aplicadas en producción sean equivalentes.
+Utiliza los datos procesados para generar un modelo entrenado. Mantiene consistencia entre entrenamiento y validación, asegurando que las transformaciones aplicadas en producción sean equivalentes
 
 Pasos implementados:
-- `imputer`: imputación de valores nulos.
-- `encoding`: codificación de variables.
-- `scaler`: escalado de variables numéricas.
-- `dimensionality reducer`: reducción opcional de dimensionalidad.
-- `training`: entrenamiento del modelo.
-- `validate`: evaluación con métricas definidas.
+- `imputer`: imputación de valores nulos
+- `encoding`: codificación de variables
+- `scaler`: escalado de variables numéricas
+- `dimensionality reducer`: reducción opcional de dimensionalidad
+- `training`: entrenamiento del modelo
+- `validate`: evaluación con métricas definidas
 
 [📎 Ver Training Pipeline Scikit-learn](https://htmlpreview.github.io/?https://github.com/juan-gomezj4/ml-message-classifier/blob/main/data/08_reporting/training_pipeline.html)
 
@@ -66,34 +66,34 @@ Pasos implementados:
 
 ### 🟦 Inference Pipeline
 
-Aplica el modelo entrenado sobre nuevos datos manteniendo la misma lógica de transformación que en el entrenamiento.
+Aplica el modelo entrenado sobre nuevos datos manteniendo la misma lógica de transformación que en el entrenamiento
 
 Pasos implementados:
-- Repite el mismo flujo de Feature Pipeline para nuevos datos.
-- Carga el `Pipeline Trainer` con los artefactos del modelo.
-- Aplica `predict` y entrega resultados listos para gestión operativa.
+- Repite el mismo flujo de Feature Pipeline para nuevos datos
+- Carga el `Pipeline Trainer` con los artefactos del modelo
+- Aplica `predict` y entrega resultados listos para gestión operativa
 
 
 
 ---
 
-### 🔁 Lógica de reentrenamiento
+### 🔁 Lógica de reentrenamiento (CT)
 
 El sistema activa el reentrenamiento automático cuando se detecta sesgo en las predicciones (por ejemplo, si cualquier clase predicha representa menos del 10% o más del 90% del total). En ese caso:
 
-- Se extraen nuevos datos.
+- Se extraen nuevos datos
 
-- Se ejecuta nuevamente el Feature Pipeline.
+- Se ejecuta nuevamente el Feature Pipeline
 
-- Se actualiza el modelo usando el mismo algoritmo y configuración actual (no se ajustan hiperparámetros).
+- Se actualiza el modelo usando el mismo algoritmo y configuración actual (no se ajustan hiperparámetros)
 
-- El Pipeline Trainer es reescrito con los nuevos datos.
+- El Pipeline Trainer es reescrito con los nuevos datos
 
-Este proceso permite mantener el modelo actualizado ante cambios en la distribución de los datos sin modificar su estructura base.
+Este proceso permite mantener el modelo actualizado ante cambios en la distribución de los datos sin modificar su estructura base
 
 ## Diccionario de datos
 
-Para esta solución se utilizó el Yelp Open Dataset como simulación de mensajes enviados por usuarios a un canal de atención. A partir de este conjunto se estructuraron las tablas base que alimentan el pipeline.
+Para esta solución se utilizó el Yelp Open Dataset como simulación de mensajes enviados por usuarios a un canal de atención. A partir de este conjunto se estructuraron las tablas base que alimentan el pipeline
 
 ### 🧑‍💼 Tabla: `user`
 
@@ -158,30 +158,30 @@ Durante el desarrollo del sistema se tomaron decisiones centradas una solución 
 ### 🔨 Modularidad y diseño de pipelines
 
 - Se definió una arquitectura **FTI (Feature - Training - Inference)** que permite separar responsabilidades y facilita testing, mantenimiento y reusabilidad.
-- Cada pipeline está desacoplado y puede ejecutarse en forma independiente o como parte de un flujo orquestado.
+- Cada pipeline está desacoplado y puede ejecutarse en forma independiente o como parte de un flujo orquestado
 
 ---
 
 ### 🧠 Feature Store
 
-- Se implementó una estructura que permite reutilizar las features generadas entre entrenamiento e inferencia.
-- Esto asegura coherencia en la transformación y reduce tiempos de cómputo en producción.
+- Se implementó una estructura que permite reutilizar las features generadas entre entrenamiento e inferencia
+- Esto asegura coherencia en la transformación y reduce tiempos de cómputo en producción
 
 ---
 
 ### 📦 Entorno y gestión de dependencias
 
 - Se utilizó `uv` para garantizar entornos reproducibles, ligeros y aislados.
-- La configuración del proyecto se gestiona con `hydra`, evitando hardcoding y facilitando la parametrización de pipelines.
+- La configuración del proyecto se gestiona con `hydra`, evitando hardcoding y facilitando la parametrización de pipelines
 
 ---
 
 ### 🧪 Validación y calidad del código
 
-- Se integraron `pre-commit` hooks para asegurar validaciones constantes sobre el código.
-- Uso de `ruff` (linter + formatter), `mypy` (tipado estático) y `bandit` (seguridad).
-- Las transformaciones y validaciones de datos estructurales se implementaron con `pandera`.
-- Testing funcional cubierto con `pytest`, con tracking de cobertura (`coverage.py`).
+- Se integraron `pre-commit` hooks para asegurar validaciones constantes sobre el código
+- Uso de `ruff` (linter + formatter), `mypy` (tipado estático) y `bandit` (seguridad)
+- Validaciones de datos estructurales
+- Testing funcional cubierto con `pytest`, con tracking de cobertura (`coverage.py`)
 
 ---
 
@@ -189,11 +189,11 @@ Durante el desarrollo del sistema se tomaron decisiones centradas una solución 
 
 Para reducir la dimensionalidad y evitar ruido, se implementó un pipeline específico que incluye:
 
-- Eliminación de variables constantes.
-- Eliminación de variables altamente correlacionadas.
-- Selección de variables basadas en importancia usando un Random Forest.
+- Eliminación de variables constantes
+- Eliminación de variables altamente correlacionadas
+- Selección de variables basadas en importancia usando un Random Forest
 
-Esto permitió construir un conjunto de features compacto y relevante, manteniendo la interpretabilidad del modelo.
+Esto permitió construir un conjunto de features compacto y relevante, manteniendo la interpretabilidad del modelo
 
 ---
 
@@ -201,25 +201,25 @@ Esto permitió construir un conjunto de features compacto y relevante, mantenien
 
 Se trató como un problema de clasificación multiclase, donde la variable objetivo fue construida a partir de las estrellas de calificación de la reseña (`stars`) del dataset de Yelp:
 
-- `0` → calificaciones menores o iguales a 2.
-- `1` → calificaciones de 3.
-- `2` → calificaciones de 4 o 5.
+- `0` → calificaciones menores o iguales a 2
+- `1` → calificaciones de 3
+- `2` → calificaciones de 4 o 5
 
-Dado que no se aplicó balanceo de clases y se buscaba una métrica robusta ante desbalance, se utilizó **F1-score ponderado (`f1_weighted`)** para la selección del modelo final.
+Dado que no se aplicó balanceo de clases y se buscaba una métrica robusta ante desbalance, se utilizó **F1-score ponderado (`f1_weighted`)** para la selección del modelo final
 
 ---
 
 ### ⚙️ Modelado y experimentación
 
 - No se aplicó un benchmark exhaustivo, pero se probaron múltiples algoritmos incluyendo AutoML.
-- El mejor modelo fue seleccionado por desempeño base y luego afinado con `GridSearchCV`.
-- El foco no estuvo en optimización algorítmica, sino en asegurar un sistema replicable y extensible.
+- El mejor modelo fue seleccionado por desempeño base y luego afinado con `GridSearchCV`
+- El foco no estuvo en optimización algorítmica, sino en asegurar un sistema replicable y extensible
 
 ---
 
 ### 🔄 Coherencia entre entrenamiento e inferencia
 
-Se garantizó la coherencia entre etapas identificando claramente las responsabilidades de cada una, definiendo su orden en un diagrama general de solución, y encapsulando la lógica dentro de `PipelineTrainer`. Esto asegura que el flujo de transformación en inferencia sea equivalente al usado durante el entrenamiento.
+Se garantizó la coherencia entre etapas identificando claramente las responsabilidades de cada una, definiendo su orden en un diagrama general de solución, y encapsulando la lógica dentro de `PipelineTrainer`. Esto asegura que el flujo de transformación en inferencia sea equivalente al usado durante el entrenamiento
 
 ---
 
@@ -227,18 +227,10 @@ Se garantizó la coherencia entre etapas identificando claramente las responsabi
 
 Aunque se trata de un proyecto de prueba técnica, se implementaron estrategias reales para asegurar trazabilidad:
 
-- Cada paso del Feature Pipeline guarda una versión intermedia de los datos para su inspección.
-- Se incluyeron `loggers` en todo el flujo para facilitar seguimiento y debugging.
-- Se probaron corridas con subconjuntos pequeños (1.000–2.000 registros) para validar la lógica general antes de escalar.
-- El desarrollo partió de una versión básica en notebooks, sin clases, que permitió validar la idea general antes de modularizar.
-
----
-
-### 🔁 Lógica de reentrenamiento
-
-- Se diseñó una condición simple para activar reentrenamiento (sesgo en clases predichas).
-- El reentrenamiento solo actualiza el modelo con nuevos datos. No modifica el algoritmo ni sus hiperparámetros.
-- El pipeline mantiene la lógica y consistencia en cada ejecución.
+- Cada paso del Feature Pipeline guarda una versión intermedia de los datos para su inspección
+- Se incluyeron `loggers` en todo el flujo para facilitar seguimiento y debugging
+- Se probaron corridas con subconjuntos pequeños (1.000–2.000 registros) para validar la lógica general antes de escalar
+- El desarrollo partió de una versión básica en notebooks, sin clases, que permitió validar la idea general antes de modularizar
 
 ---
 
@@ -291,4 +283,44 @@ La organización del repositorio sigue principios de separación de responsabili
 ├── uv.lock                       # Lockfile para gestión de dependencias con uv
 ├── codecov.yml                   # Configuración de cobertura de código
 └── README.md                     # Documento principal del proyecto
+```
 
+## 🧪 CI / 🚀 CD  
+
+El proyecto implementa un flujo completo y funcional de MLOps:
+
+### ✅ CI – Continuous Integration
+
+- Validación automática de estilo, tipos y errores con `pre-commit`, `ruff` y `mypy`
+- Pruebas unitarias con `pytest` y cobertura de código, integradas en GitHub Actions.
+- Reporte de coverage enviado a [Codecov](https://about.codecov.io/)
+
+### 🚀 CD – Continuous Delivery
+
+- Entrenamiento del modelo desde datos preprocesados (`data/04_feature/review_user_business_mit_sample.parquet`).
+- Pipeline modular usando `sklearn.Pipeline`, compuesto por:
+  - `MDTYelpData`: transformaciones dependientes del modelo.
+  - `TrainModelTransformer`: entrenamiento con `XGBClassifier`.
+- Integración en el CI/CD con el comando `make train`, ejecutado automáticamente tras pasar los tests.
+
+
+## Siguientes pasos técnicos
+
+Este MVP deja sentada la arquitectura base del sistema, pero se identificaron varias oportunidades de mejora para la siguiente iteración:
+
+- 🧼 **Refactor del código**  
+  Reorganizar y simplificar transformadores, funciones y clases para mayor legibilidad y mantenimiento
+
+- 🧪 **Revisión de tipado estático**  
+  Ajustar las anotaciones de tipo (`mypy`) en transformadores, funciones y clases para mejorar validación en desarrollo
+
+- ⚖️ **Balanceo de clases**  
+  Evaluar técnicas como reponderación o submuestreo para mejorar el rendimiento del modelo en clases minoritarias
+
+- 🧠 **Interpretabilidad del modelo**  
+  Incluir análisis de importancia de variables (`feature_importance_`) y herramientas como SHAP para explicar predicciones
+
+- 📈 **Optimización del rendimiento**  
+  La métrica `f1_macro` pasó de **0.63 a 0.70** tras ajustes simples; nuevas mejoras podrían llevarla más lejos con balanceo e interpretabilidad
+
+Estas mejoras son compatibles con la arquitectura actual y se pueden incorporar sin romper el diseño del sistema

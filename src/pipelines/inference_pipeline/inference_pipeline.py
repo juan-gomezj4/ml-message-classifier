@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Any
 
+import joblib
 import pandas as pd
 from loguru import logger
 from omegaconf import OmegaConf
@@ -15,7 +15,7 @@ config_feature = OmegaConf.load(BASE_DIR / "conf/data_feature/feature.yml")
 config_inference = OmegaConf.load(BASE_DIR / "conf/model_inference/inference.yml")
 
 
-def run_inference_pipeline(data: pd.DataFrame, model: Any, pipeline: Any) -> None:
+def run_inference_pipeline() -> None:
     """
     Run the full inference pipeline: load data and model, MIT, MDT, predict.
 
@@ -24,6 +24,12 @@ def run_inference_pipeline(data: pd.DataFrame, model: Any, pipeline: Any) -> Non
         model: Trained model
     """
     logger.info("Starting inference pipeline")
+
+    # Read data and model
+    logger.info(f"Loading data from {config_inference.paths.new_data}")
+    logger.info(f"Loading model from {config_inference.paths.best_model}")
+    df = pd.read_parquet(config_inference.paths.new_data)
+    pipeline = joblib.load(config_inference.paths.best_model)
 
     # MIT - Apply model-independent transformations
     # Validate
@@ -38,7 +44,7 @@ def run_inference_pipeline(data: pd.DataFrame, model: Any, pipeline: Any) -> Non
         cols_string=config_feature.validation.cols_string,
         col_date=config_feature.validation.col_date,
     )
-    df = validate.transform(data)
+    df = validate.transform(df)
     logger.info("Data validation complete")
 
     # Aggregate

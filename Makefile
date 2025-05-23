@@ -43,7 +43,7 @@ lint: ## Run only Ruff
 
 ####----Train model from feature data----####
 train: ## Train model from feature data
-	uv run python train_model.py
+	uv run python start_batch_nlp.py --stage T
 
 ####----Project----####
 help:

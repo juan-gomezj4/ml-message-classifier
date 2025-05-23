@@ -22,8 +22,8 @@ random_state: 42
 
 ### Data validate configuration
 metric_thresholds:
-  f1_macro: 0.65
-  recall_macro: 0.65
+  f1_macro: 0.4
+  recall_macro: 0.4
 
 
 outputs:

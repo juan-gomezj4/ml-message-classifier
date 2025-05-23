@@ -114,4 +114,5 @@ mit:
   n_components: 50
 
 mit_output_path: data/04_feature/review_user_business_mit.parquet
+mit_output_path2: data/04_feature/review_user_business_mit_sample.parquet
 mit_output_transform_path: data/08_reporting/feature_pipeline.html

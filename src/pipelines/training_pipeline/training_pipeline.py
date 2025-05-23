@@ -31,7 +31,7 @@ def run_training_pipeline() -> Any:
     data = pd.read_parquet(config_feature.mit_output_path2)
 
     # Create target column
-    data = transform_stars_to_target(data, config_training.target_column)
+    data = transform_stars_to_target(data, "stars")
 
     # Split
     X_train, X_test, y_train, y_test = split_data(

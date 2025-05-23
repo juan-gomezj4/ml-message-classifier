@@ -36,9 +36,9 @@ jobs:
 
 
   train-model:
-    name: Train model
+    name: train model
     runs-on: ubuntu-latest
-    needs: test  # Solo si los tests pasan
+    needs: test
     steps:
       - uses: actions/checkout@v4
 

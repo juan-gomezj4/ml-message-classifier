@@ -176,9 +176,8 @@ class MITYelpData(BaseEstimator, TransformerMixin):
         X_transformed = X.copy()
         for transformer in self.transformers:
             if not hasattr(transformer, "transform"):
-                raise TypeError(
-                    f"{transformer.__class__.__name__} must implement .transform()"
-                )
+                msg = f"{transformer.__class__.__name__} must implement .transform()"
+                raise TypeError(msg)
             logger.debug(f"Applying: {transformer.__class__.__name__}")
             X_transformed = transformer.transform(X_transformed)
 

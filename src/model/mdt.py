@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 import pandas as pd
 from feature_engine.selection import (
@@ -53,7 +53,7 @@ def split_data(
     target_column: str,
     test_size: float = 0.2,
     random_state: int = 42,
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
     """
     Split a DataFrame into train/test sets based on a target column.
 
@@ -64,7 +64,7 @@ def split_data(
         random_state: Seed for reproducibility.
 
     Returns:
-        Tuple of (X_train, X_test, y_train, y_test)
+        tuple of (X_train, X_test, y_train, y_test)
     """
     logger.info("Splitting data into train and test sets.")
     # Step 1: check if the target column exists
@@ -117,9 +117,9 @@ class EncodingTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if self.ohe is None:
-            raise RuntimeError(
-                "EncodingTransformer must be fitted before calling transform()."
-            )
+            msg = "EncodingTransformer must be fitted before calling transform()."
+            raise RuntimeError(msg)
+        assert self.ohe is not None
 
         logger.info("Transforming data with EncodingTransformer.")
         X = X.copy()
@@ -158,7 +158,8 @@ class GroupMeanImputer(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if not self.group_means_ or not self.global_means_:
-            raise RuntimeError("Must call fit() before transform().")
+            msg = "Must call fit() before transform()."
+            raise RuntimeError(msg)
 
         logger.info("Transforming data with GroupMeanImputer.")
         X = X.copy()
@@ -186,7 +187,10 @@ class ScalerTransformer(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if not self.columns_:
-            raise RuntimeError("ScalerTransformer must be fitted before transform().")
+            msg = "ScalerTransformer must be fitted before transform."
+            raise RuntimeError(msg)
+        assert self.columns_ is not None
+
         logger.info("Transforming data with ScalerTransformer.")
         X = X.copy()
         X[self.columns_] = self.scaler.transform(X[self.columns_])
@@ -227,7 +231,10 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
         self.pipeline = Pipeline(
             [
                 ("drop_constant", DropConstantFeatures()),
-                ("drop_correlated", DropCorrelatedFeatures(threshold=self.corr_threshold)),
+                (
+                    "drop_correlated",
+                    DropCorrelatedFeatures(threshold=self.corr_threshold),
+                ),
                 (
                     "target_selector",
                     SelectBySingleFeaturePerformance(
@@ -260,10 +267,11 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
         selector = self.pipeline.named_steps["target_selector"]
         mask = selector.get_support()
         if len(mask) != len(input_columns):
-            raise ValueError(
+            msg = (
                 f"Column mismatch: selector mask size {len(mask)} "
                 f"≠ input column size {len(input_columns)}"
             )
+            raise ValueError(msg)
 
         self.selected_columns_ = [col for col, keep in zip(input_columns, mask) if keep]
 
@@ -271,9 +279,10 @@ class DimensionalityReducer(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if self.pipeline is None or self.selected_columns_ is None:
-            raise RuntimeError(
-                "DimensionalityReducer must be fitted before calling transform()."
-            )
+            msg = "DimensionalityReducer must be fitted before calling transform()."
+            raise RuntimeError(msg)
+        assert self.pipeline is not None
+
         logger.info("Transforming data with DimensionalityReducer.")
         X_reduced = self.pipeline.transform(X)
         return pd.DataFrame(X_reduced, columns=self.selected_columns_, index=X.index)
@@ -340,7 +349,12 @@ class MDTYelpData(BaseEstimator, TransformerMixin):
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         if not all([self.encoder, self.scaler, self.reducer]):
-            raise RuntimeError("MDTYelpData must be fitted before calling transform().")
+            msg = "MDTYelpData must be fitted before calling transform()."
+            raise RuntimeError(msg)
+
+        assert self.encoder is not None
+        assert self.scaler is not None
+        assert self.reducer is not None
 
         logger.info("Transforming data with MDTYelpData...")
 

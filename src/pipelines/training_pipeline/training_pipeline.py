@@ -80,7 +80,7 @@ def run_training_pipeline(data: pd.DataFrame) -> Any:
     )
 
     # Save model and metrics
-    joblib.dump(trained_model, BASE_DIR / config.outputs.model_path)
+    joblib.dump(pipeline, BASE_DIR / config.outputs.model_path)
     pd.DataFrame([results]).to_parquet(
         BASE_DIR / config.outputs.metrics_path, index=False
     )

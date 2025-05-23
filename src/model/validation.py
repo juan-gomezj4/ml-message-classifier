@@ -3,7 +3,6 @@ from typing import Any
 import pandas as pd
 from sklearn.metrics import classification_report
 
-
 METRIC_MAP = {
     "f1_macro": "f1-score",
     "recall_macro": "recall",
@@ -40,19 +39,18 @@ def evaluate_model(
     for metric, threshold in thresholds.items():
         key_in_macro = METRIC_MAP.get(metric)
         if key_in_macro is None:
-            raise ValueError(
-                f"Unsupported metric '{metric}'. Please update METRIC_MAP if needed."
-            )
+            msg = f"Unsupported metric '{metric}'. Please update METRIC_MAP if needed."
+            raise ValueError(msg)
 
         score = macro_avg.get(key_in_macro)
         if score is None:
-            raise ValueError(f"Metric '{metric}' not found in evaluation results.")
+            msg = f"Metric '{metric}' not found in evaluation results."
+            raise ValueError(msg)
 
         results[metric] = score
 
         if score < threshold:
-            raise ValueError(
-                f"[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
-            )
+            msg = f"[FAIL] {metric} = {score:.4f} < threshold = {threshold:.4f}"
+            raise ValueError(msg)
 
     return results

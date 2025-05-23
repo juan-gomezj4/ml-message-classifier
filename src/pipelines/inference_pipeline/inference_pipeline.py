@@ -1,23 +1,21 @@
 from pathlib import Path
 from typing import Any
 
-import joblib
 import pandas as pd
 from loguru import logger
 from omegaconf import OmegaConf
 
-from src.data.validate import ValidateYelpData
 from src.data.aggregate import AggregateYelpData
 from src.data.compress import CompressYelpData
 from src.data.mit import MITYelpData
-
+from src.data.validate import ValidateYelpData
 
 BASE_DIR = Path(__file__).resolve().parents[3]
 config_feature = OmegaConf.load(BASE_DIR / "conf/data_feature/feature.yml")
 config_inference = OmegaConf.load(BASE_DIR / "conf/model_inference/inference.yml")
 
 
-def run_inference_pipeline(data: pd.DataFrame, model: Any) -> None:
+def run_inference_pipeline(data: pd.DataFrame, model: Any, pipeline: Any) -> None:
     """
     Run the full inference pipeline: load data and model, MIT, MDT, predict.
 
@@ -90,7 +88,8 @@ def run_inference_pipeline(data: pd.DataFrame, model: Any) -> None:
 
     # MDT - Transform with fitted MDT
     logger.info("Applying model-dependent transformations")
-    df = pipeline.named_steps["mdt"].transform(df)
+    mdt_fitted = pipeline.named_steps["mdt"]
+    df = mdt_fitted.transform(df)
     logger.info("MDT transformations complete")
 
     # Predict
@@ -103,10 +102,9 @@ def run_inference_pipeline(data: pd.DataFrame, model: Any) -> None:
     logger.info("Building output dataframe")
     class_labels = pipeline.named_steps["train"].model_.classes_
     proba_df = pd.DataFrame(y_proba, columns=[f"proba_{c}" for c in class_labels])
-    output_df = pd.DataFrame({
-        review_id_col: review_ids,
-        "prediction": y_pred
-    }).join(proba_df)
+    output_df = pd.DataFrame({review_id_col: review_ids, "prediction": y_pred}).join(
+        proba_df
+    )
 
     # Save dataframe with predictions
     logger.info(f"Saving predictions to {config_inference.paths.prediction}")

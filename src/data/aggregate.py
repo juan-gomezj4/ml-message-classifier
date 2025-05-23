@@ -117,7 +117,8 @@ class QCutLevelAggregateTransformer(BaseEstimator, TransformerMixin):
         X = X.copy()
         for col in self.qcut_level:
             if col not in X.columns:
-                raise ValueError(f"Column '{col}' not found in DataFrame.")
+                msg = f"Column '{col}' not found in DataFrame."
+                raise ValueError(msg)
             X[f"{col}_level"] = pd.qcut(
                 X[col], q=4, labels=self.labels, duplicates="drop"
             ).astype("int32")
@@ -380,9 +381,10 @@ class AggregateYelpData(BaseEstimator, TransformerMixin):
         X_transformed = X.copy()
         for transformer in self.transformers:
             if not hasattr(transformer, "transform"):
-                raise TypeError(
+                msg = (
                     f"{transformer.__class__.__name__} does not implement .transform()"
                 )
+                raise TypeError(msg)
             logger.debug(f"Applying: {transformer.__class__.__name__}")
             X_transformed = transformer.transform(X_transformed)
 

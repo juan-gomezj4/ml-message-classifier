@@ -3,8 +3,8 @@ from typing import Any
 
 import pandas as pd
 from loguru import logger
-from sklearn.utils.validation import check_is_fitted
 from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.validation import check_is_fitted
 
 
 class TrainModelTransformer(BaseEstimator, TransformerMixin):
@@ -33,5 +33,6 @@ class TrainModelTransformer(BaseEstimator, TransformerMixin):
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
         check_is_fitted(self, "model_")
         if not self.is_fitted_:
-            raise RuntimeError("TrainModelTransformer must be fitted before calling transform().")
+            msg = "TrainModelTransformer must be fitted before calling transform()."
+            raise RuntimeError(msg)
         return X

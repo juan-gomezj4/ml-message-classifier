@@ -151,7 +151,7 @@ Para esta solución se utilizó el Yelp Open Dataset como simulación de mensaje
 
 ## Decisiones técnicas
 
-Durante el desarrollo del sistema se tomaron decisiones centradas una solución reproducible, mantenible, escalable  y criterios reales de ingeniería, más allá de la construcción de un modelo puntual. A continuación, se describen los principales puntos técnicos:
+Durante el desarrollo del sistema se tomaron decisiones centradas en una solución reproducible, mantenible, escalable  y criterios reales de ingeniería, más allá de la construcción de un modelo puntual. A continuación, se describen los principales puntos técnicos:
 
 ---
 

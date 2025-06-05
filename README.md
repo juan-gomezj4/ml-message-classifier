@@ -18,7 +18,7 @@ El proyecto priorizó:
 
 - **Diseñar pipelines desacoplados**, compatibles con ejecución secuencial o por orquestador
 - **Definir pasos explícitos por etapa** (extracción, validación, agregación, etc.), facilitando la trazabilidad del flujo
-- **Aplicar validaciones automáticas** de datos y modelos con `pandera` y métricas definidas
+- **Aplicar validaciones** de datos y modelos
 - **Controlar dependencias y calidad del código** mediante herramientas como `uv`, `hydra`, `ruff`, `mypy`, `bandit`, `pre-commit`, `pytest` y `coverage.py`
 - **Simular condiciones realistas de producción**, incluyendo detección de drift, uso de feature store y reentrenamiento automático
 
@@ -39,7 +39,7 @@ Toma los datos crudos desde Yelp y los transforma en un conjunto de features lim
 Pasos implementados:
 - `extract`: lectura de nuevos datos
 - `remove duplicates`: eliminación de duplicados
-- `validate`: validación de estructura y tipos con `pandera`
+- `validate`: validación de estructura y tipos
 - `clean text`: preprocesamiento básico del texto
 - `create new features`: variables derivadas
 - `embedding`: transformación del texto en vectores numéricos

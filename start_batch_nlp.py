@@ -1,6 +1,6 @@
 import argparse
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from loguru import logger
 from omegaconf import OmegaConf
